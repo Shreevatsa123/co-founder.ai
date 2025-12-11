@@ -62,14 +62,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
         </button>
         <div className="min-w-0 flex-1 flex items-center justify-between">
            <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate font-display">{data.title}</h1>
-           
-           <button 
-             onClick={() => setShowPromptManager(true)}
-             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all"
-           >
-             <Icons.Sparkles className="w-4 h-4" />
-             <span className="hidden sm:inline">Build Prompts</span>
-           </button>
         </div>
       </div>
 
@@ -90,7 +82,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
 
         {/* View: Resources & Scope */}
         {activeView === 'resources' && (
-          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3 font-display">
@@ -207,7 +199,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
 
         {/* View: Strategy & Risks */}
         {activeView === 'strategy' && (
-          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3 font-display">
@@ -264,6 +256,23 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                </button>
             </div>
          ))}
+         
+         <div className="w-full h-px bg-slate-300/50 my-1"></div>
+
+         {/* Build Prompts Button */}
+         <div className="relative group flex items-center justify-end">
+            <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg font-display">
+                Build Prompts
+                <div className="absolute top-1/2 -right-1 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
+            </div>
+            <button
+               onClick={() => setShowPromptManager(true)}
+               className="w-12 h-12 flex items-center justify-center rounded-full border-2 bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-200 sketch-shadow hover:sketch-shadow-hover"
+            >
+               <Icons.Sparkles className="w-5 h-5" />
+            </button>
+         </div>
+
       </div>
 
       {showPromptManager && (

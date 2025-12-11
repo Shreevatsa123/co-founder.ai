@@ -715,8 +715,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
         ${selectedNodeId ? 'translate-x-0' : 'translate-x-full'}
       `}>
            {selectedNode && (
-             <>
-               <div className="p-6 border-b-2 border-slate-100 flex items-start justify-between bg-slate-50 pr-12">
+             <div className="h-full flex flex-col pr-20">
+               <div className="p-6 border-b-2 border-slate-100 flex items-start justify-between bg-slate-50">
                  <div>
                    <h3 className="text-lg font-bold text-slate-900">{selectedNode.label}</h3>
                    <span className="text-xs font-mono text-slate-500 mt-1 block uppercase">{selectedNode.type}</span>
@@ -770,7 +770,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                     </div>
                  </div>
                </div>
-             </>
+             </div>
            )}
       </div>
     </div>

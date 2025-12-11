@@ -124,48 +124,92 @@ export const DynamicChart: React.FC<{ metric: DomainMetric }> = ({ metric }) => 
   }
 
   if (metric.type === 'radar') {
-     // Simplified Radar Chart visualization
-     const maxVal = Math.max(...metric.data.map(d => d.value));
+     const size = 200;
+     const center = size / 2;
+     const radius = (size - 40) / 2;
+     const angleSlice = (Math.PI * 2) / metric.data.length;
+     const maxVal = Math.max(...metric.data.map(d => d.value)) || 1;
+
+     const points = metric.data.map((d, i) => {
+        const val = (d.value / maxVal) * radius;
+        const x = center + val * Math.cos(i * angleSlice - Math.PI / 2);
+        const y = center + val * Math.sin(i * angleSlice - Math.PI / 2);
+        return `${x},${y}`;
+     }).join(' ');
+
      return (
-       <div className="relative h-48 w-full flex items-center justify-center bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
-         <div className="absolute inset-0 flex items-center justify-center opacity-10">
-            <div className="w-32 h-32 border border-slate-900 rounded-full"></div>
-            <div className="w-20 h-20 border border-slate-900 rounded-full absolute"></div>
-            <div className="w-10 h-10 border border-slate-900 rounded-full absolute"></div>
-         </div>
-         <div className="z-10 w-full px-4 flex justify-around items-end h-32 gap-2">
-            {metric.data.map((d, i) => (
-               <div key={i} className="flex flex-col items-center gap-1 group w-full">
-                  <div className="relative w-2 h-full bg-slate-200 rounded-full overflow-hidden">
-                     <div 
-                       className="absolute bottom-0 w-full bg-indigo-500 group-hover:bg-indigo-600 transition-all duration-700"
-                       style={{ height: `${(d.value / maxVal) * 100}%` }}
-                     ></div>
-                  </div>
-                  <span className="text-[10px] text-slate-500 font-bold truncate max-w-[40px] text-center">{d.label.substring(0,4)}</span>
-               </div>
+       <div className="relative h-64 w-full flex items-center justify-center bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
+         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            {/* Grid Circles */}
+            {[0.2, 0.4, 0.6, 0.8, 1].map(r => (
+               <circle key={r} cx={center} cy={center} r={radius * r} fill="none" stroke="#e2e8f0" strokeWidth="1" />
             ))}
-         </div>
+            {/* Axes */}
+            {metric.data.map((_, i) => {
+               const x = center + radius * Math.cos(i * angleSlice - Math.PI / 2);
+               const y = center + radius * Math.sin(i * angleSlice - Math.PI / 2);
+               return <line key={i} x1={center} y1={center} x2={x} y2={y} stroke="#e2e8f0" strokeWidth="1" />;
+            })}
+            {/* Shape */}
+            <polygon points={points} fill="rgba(99, 102, 241, 0.2)" stroke="#6366f1" strokeWidth="2" />
+            {/* Labels */}
+            {metric.data.map((d, i) => {
+               // Push labels out a bit
+               const labelRadius = radius + 15; 
+               const x = center + labelRadius * Math.cos(i * angleSlice - Math.PI / 2);
+               const y = center + labelRadius * Math.sin(i * angleSlice - Math.PI / 2);
+               return (
+                 <text 
+                   key={i} 
+                   x={x} 
+                   y={y} 
+                   textAnchor="middle" 
+                   dominantBaseline="middle" 
+                   fontSize="9" 
+                   fill="#64748b" 
+                   fontWeight="bold"
+                 >
+                   {d.label}
+                 </text>
+               )
+            })}
+         </svg>
        </div>
      );
   }
 
   if (metric.type === 'line') {
-     // Simulated Area/Line Chart
-     const maxVal = Math.max(...metric.data.map(d => d.value));
+     const height = 160;
+     const width = 300;
+     const padding = 20;
+     const maxVal = Math.max(...metric.data.map(d => d.value)) || 1;
+     
+     const points = metric.data.map((d, i) => {
+       const x = padding + (i / (metric.data.length - 1)) * (width - 2 * padding);
+       const y = height - padding - (d.value / maxVal) * (height - 2 * padding);
+       return `${x},${y}`;
+     }).join(' ');
+
+     // Create area path
+     const areaPoints = `${padding},${height-padding} ${points} ${width-padding},${height-padding}`;
+
      return (
-       <div className="h-40 flex items-end justify-between gap-1 pt-4">
-          {metric.data.map((d, i) => (
-             <div key={i} className="flex-1 flex flex-col items-center group">
-                <div className="w-full relative flex items-end h-32 bg-slate-50 rounded-t-sm mx-0.5 overflow-hidden">
-                   <div 
-                     className="w-full bg-indigo-100 border-t-2 border-indigo-500 group-hover:bg-indigo-200 transition-all duration-500"
-                     style={{ height: `${(d.value / maxVal) * 100}%` }}
-                   ></div>
-                </div>
-                <span className="text-[9px] text-slate-400 mt-2 font-bold rotate-0 truncate max-w-full px-1">{d.label}</span>
-             </div>
-          ))}
+       <div className="w-full overflow-hidden flex justify-center bg-slate-50 rounded-lg p-2 border border-slate-100">
+         <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d={`M ${areaPoints} Z`} fill="url(#areaGradient)" stroke="none" />
+            <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            {metric.data.map((d, i) => {
+               const x = padding + (i / (metric.data.length - 1)) * (width - 2 * padding);
+               const y = height - padding - (d.value / maxVal) * (height - 2 * padding);
+               return <circle key={i} cx={x} cy={y} r="3" fill="#ffffff" stroke="#6366f1" strokeWidth="2" />
+            })}
+         </svg>
        </div>
      );
   }
