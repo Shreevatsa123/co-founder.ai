@@ -60,6 +60,12 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
       1. 'appWorkflow': A diagram of how the system WORKS (User actions -> System -> Data).
       2. 'implementationWorkflow': A diagram of how to BUILD the system (Step-by-step dev guide: Setup -> Frontend -> Backend -> Deploy).
       3. 'techStack': Specific, modern recommendations.
+      4. 'strategicInsights': Generate 3-4 domain-specific data visualizations that are CRITICAL for this specific project type. 
+         - For Fintech: Fraud Heatmap, Transaction Volume by Hour.
+         - For Social: User Retention Curve, Virality Coefficient.
+         - For E-commerce: Cart Abandonment Rate, Conversion Funnel.
+         - For ML/AI: Model Accuracy vs Data Size, Feature Importance.
+         Replace generic revenue charts with these specific insights.
 
       Output JSON adhering to the schema.
       `,
@@ -96,6 +102,26 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
             required: ["targetAudience", "keyCompetitors", "currentTrends", "totalAddressableMarket", "projectedRevenue", "marketSegments"]
           },
           
+          strategicInsights: {
+             type: Type.ARRAY,
+             items: {
+               type: Type.OBJECT,
+               properties: {
+                 title: { type: Type.STRING },
+                 type: { type: Type.STRING, enum: ['bar', 'pie', 'line', 'stat'] },
+                 data: {
+                   type: Type.ARRAY,
+                   items: {
+                      type: Type.OBJECT,
+                      properties: { label: { type: Type.STRING }, value: { type: Type.NUMBER } }
+                   }
+                 },
+                 summary: { type: Type.STRING }
+               },
+               required: ["title", "type", "data", "summary"]
+             }
+          },
+
           userSentiment: {
             type: Type.OBJECT,
             properties: {
@@ -213,7 +239,7 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
           }
         },
         required: [
-          "title", "summary", "domain", "marketAnalysis", "userSentiment", "scope",
+          "title", "summary", "domain", "marketAnalysis", "strategicInsights", "userSentiment", "scope",
           "coreConcepts", "techStack", "appWorkflow", "implementationWorkflow", "risksAndLiabilities", "recommendedResources"
         ]
       }

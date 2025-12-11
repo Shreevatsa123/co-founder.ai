@@ -28,6 +28,13 @@ export interface MarketSegment {
   percentage: number;
 }
 
+export interface DomainMetric {
+  title: string;
+  type: 'bar' | 'pie' | 'line' | 'stat';
+  data: { label: string; value: number }[];
+  summary: string;
+}
+
 export interface MarketAnalysis {
   targetAudience: string;
   keyCompetitors: string[];
@@ -98,6 +105,7 @@ export interface Blueprint {
   
   // Analysis
   marketAnalysis: MarketAnalysis;
+  strategicInsights: DomainMetric[]; // Dynamic Domain Charts
   userSentiment: UserFeedbackAnalysis;
   scope: ScopeRecommendation;
 

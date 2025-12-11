@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Blueprint, ChatMessage, Project } from '../types';
 import { Icons } from './Icons';
-import { RevenueChart, MarketDonut } from './Visualizations';
+import { RevenueChart, MarketDonut, DynamicChart } from './Visualizations';
 import { WorkflowMap } from './WorkflowMap';
 
 interface BlueprintViewProps {
@@ -49,23 +49,22 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   return (
     <div className="relative w-full h-full flex flex-col bg-slate-50 overflow-hidden">
       
-      {/* Header - Transparent / Blur - No subtitle */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200/50">
+      {/* Header - Changed to RELATIVE to prevent overlapping */}
+      <div className="relative z-40 flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200/50 flex-shrink-0">
         <button 
           onClick={onToggleSidebar}
-          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all"
+          className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all flex-shrink-0"
           title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
         >
           {isSidebarOpen ? <Icons.PanelLeftClose className="w-6 h-6" /> : <Icons.PanelLeftOpen className="w-6 h-6" />}
         </button>
-        <div>
-           <h1 className="text-2xl font-bold text-slate-900 leading-none">{data.title}</h1>
+        <div className="min-w-0">
+           <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate">{data.title}</h1>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 relative overflow-hidden pt-20"> 
-        {/* pt-20 to account for absolute header */}
+      <div className="flex-1 relative overflow-hidden"> 
         
         {/* View: Workflow (Map) */}
         {activeView === 'workflow' && (
@@ -82,7 +81,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
         {/* View: Resources & Scope */}
         {activeView === 'resources' && (
           <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
-             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20 mt-8">
+             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
                     <Icons.Book className="w-8 h-8 text-indigo-600" />
@@ -96,16 +95,18 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                   <p className="text-slate-700 leading-relaxed">{data.summary}</p>
                 </div>
 
-                {/* Scope / MVP Features (Moved here) */}
+                {/* Scope / MVP Features (Updated Styling) */}
                 <Card title="Scope & MVP Features" icon={Icons.Layers} className="md:col-span-2">
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-emerald-700 text-sm font-bold">
                         <Icons.Check className="w-4 h-4" /> Must Have (Core)
                       </div>
-                      <ul className="bg-emerald-50 border-2 border-emerald-100 rounded-lg p-4 space-y-2">
+                      <ul className="bg-emerald-50 border-2 border-emerald-100 rounded-lg p-4 space-y-3">
                         {data.scope.coreFeatures.map((f, i) => (
-                          <li key={i} className="text-sm text-slate-800 font-medium">{f}</li>
+                          <li key={i} className="text-sm text-slate-800 font-medium pl-3 border-l-4 border-emerald-400 leading-snug">
+                            {f}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -114,9 +115,11 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                       <div className="flex items-center gap-2 text-amber-600 text-sm font-bold">
                         <Icons.Plus className="w-4 h-4" /> Nice to Have (v2)
                       </div>
-                      <ul className="bg-amber-50 border-2 border-amber-100 rounded-lg p-4 space-y-2">
+                      <ul className="bg-amber-50 border-2 border-amber-100 rounded-lg p-4 space-y-3">
                         {data.scope.optionalFeatures.map((f, i) => (
-                          <li key={i} className="text-sm text-slate-700">{f}</li>
+                          <li key={i} className="text-sm text-slate-700 pl-3 border-l-4 border-amber-400 leading-snug">
+                            {f}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -125,9 +128,11 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                       <div className="flex items-center gap-2 text-rose-500 text-sm font-bold">
                         <Icons.Minus className="w-4 h-4" /> Out of Scope
                       </div>
-                      <ul className="bg-rose-50 border-2 border-rose-100 rounded-lg p-4 space-y-2">
+                      <ul className="bg-rose-50 border-2 border-rose-100 rounded-lg p-4 space-y-3">
                         {data.scope.outOfScope.map((f, i) => (
-                          <li key={i} className="text-sm text-slate-500 line-through decoration-slate-300">{f}</li>
+                          <li key={i} className="text-sm text-slate-500 line-through decoration-slate-300 pl-3 border-l-4 border-rose-300 leading-snug">
+                            {f}
+                          </li>
                         ))}
                       </ul>
                     </div>
@@ -193,7 +198,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
         {/* View: Strategy & Risks */}
         {activeView === 'strategy' && (
           <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
-             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20 mt-8">
+             <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3">
                     <Icons.Trending className="w-8 h-8 text-indigo-600" />
@@ -201,20 +206,13 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                   </h2>
                 </div>
 
-                {/* Market Analysis Visuals */}
-                <Card title="Market Potential" icon={Icons.PieChart} className="md:col-span-2">
-                  <div className="grid md:grid-cols-2 gap-12">
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800 mb-2">Projected Revenue Growth</h4>
-                        <p className="text-xs text-slate-500 mb-4">Estimated achievable revenue based on {data.marketAnalysis.totalAddressableMarket} TAM.</p>
-                        <RevenueChart data={data.marketAnalysis.projectedRevenue} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-slate-800 mb-4">Target Market Segments</h4>
-                        <MarketDonut segments={data.marketAnalysis.marketSegments} />
-                      </div>
-                  </div>
-                </Card>
+                {/* NEW Intelligent Strategy Dashboard */}
+                {data.strategicInsights?.map((metric, idx) => (
+                   <Card key={idx} title={metric.title} icon={Icons.Activity}>
+                      <DynamicChart metric={metric} />
+                      <p className="text-xs text-slate-500 mt-4 italic border-t border-slate-100 pt-2">{metric.summary}</p>
+                   </Card>
+                ))}
 
                  {/* Risks & Liabilities (Moved here) */}
                  <Card title="Risks & Liabilities" icon={Icons.Shield} className="md:col-span-2">
