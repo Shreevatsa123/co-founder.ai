@@ -30,7 +30,7 @@ export interface MarketSegment {
 
 export interface DomainMetric {
   title: string;
-  type: 'bar' | 'pie' | 'line' | 'stat';
+  type: 'bar' | 'pie' | 'line' | 'stat' | 'radar';
   data: { label: string; value: number }[];
   summary: string;
 }
@@ -98,6 +98,16 @@ export interface AppWorkflow {
   drawings?: Drawing[];
 }
 
+export interface PromptStep {
+  id: string;
+  step: number;
+  title: string;
+  prompt: string;
+  status: 'pending' | 'completed';
+  userOutput?: string;
+  aiFeedback?: string;
+}
+
 export interface Blueprint {
   title: string;
   summary: string;
@@ -121,6 +131,9 @@ export interface Blueprint {
   
   // Optional context
   clarifyingQuestions?: string[];
+  
+  // Prompt Generation
+  promptPlan?: PromptStep[];
 }
 
 export interface ClarificationResponse {

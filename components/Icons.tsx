@@ -39,7 +39,14 @@ import {
   PenTool,
   MousePointer2,
   Pencil,
-  Minus
+  Minus,
+  Eraser,
+  Undo2,
+  Redo2,
+  Sparkles,
+  Copy,
+  ClipboardCheck,
+  Radar
 } from 'lucide-react';
 
 export const Icons = {
@@ -81,5 +88,12 @@ export const Icons = {
   PenTool,
   MousePointer2,
   Pencil,
-  Line: Minus
+  Line: Minus,
+  Eraser,
+  Undo: Undo2,
+  Redo: Redo2,
+  Sparkles,
+  Copy,
+  Clipboard: ClipboardCheck,
+  Radar
 };

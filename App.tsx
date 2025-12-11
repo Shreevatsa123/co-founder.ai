@@ -173,15 +173,9 @@ function App() {
         <div className="p-4 border-b-2 border-slate-900 flex items-center justify-between min-w-[18rem] bg-white">
           <div className="flex items-center gap-2 font-bold text-slate-900">
             <Icons.Book className="w-5 h-5 text-indigo-600" />
-            <span>My Notebooks</span>
+            <span className="font-display">My Notebooks</span>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(false)} 
-            className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-colors"
-            title="Close Sidebar"
-          >
-            <Icons.PanelLeftClose className="w-5 h-5" />
-          </button>
+          {/* Toggle Button Removed as requested */}
         </div>
 
         <div className="p-4 min-w-[18rem]">
@@ -217,7 +211,7 @@ function App() {
                    ) : (
                       <Icons.ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
                    )}
-                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-900">{group}</span>
+                   <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-900 font-display">{group}</span>
                    <span className="ml-auto text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">{groupProjects.length}</span>
                  </button>
                  
@@ -285,7 +279,7 @@ function App() {
                 <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
                 <Icons.Brain className="w-6 h-6 text-indigo-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mt-6 mb-2">
+              <h2 className="text-xl font-bold text-slate-900 mt-6 mb-2 font-display">
                 {appState === AppState.ANALYZING ? "Reviewing your idea..." : "Drafting the Notebook..."}
               </h2>
               <p className="text-slate-500 font-medium">

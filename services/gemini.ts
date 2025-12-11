@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { Blueprint, ChatMessage, ClarificationResponse, AppWorkflow, StickyNote, TechItem } from "../types";
+import { Blueprint, ChatMessage, ClarificationResponse, AppWorkflow, StickyNote, TechItem, PromptStep } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 const modelId = "gemini-2.5-flash";
@@ -60,12 +60,11 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
       1. 'appWorkflow': A diagram of how the system WORKS (User actions -> System -> Data).
       2. 'implementationWorkflow': A diagram of how to BUILD the system (Step-by-step dev guide: Setup -> Frontend -> Backend -> Deploy).
       3. 'techStack': Specific, modern recommendations.
-      4. 'strategicInsights': Generate 3-4 domain-specific data visualizations that are CRITICAL for this specific project type. 
-         - For Fintech: Fraud Heatmap, Transaction Volume by Hour.
-         - For Social: User Retention Curve, Virality Coefficient.
-         - For E-commerce: Cart Abandonment Rate, Conversion Funnel.
-         - For ML/AI: Model Accuracy vs Data Size, Feature Importance.
-         Replace generic revenue charts with these specific insights.
+      4. 'strategicInsights': Generate 3-4 domain-specific data visualizations.
+         - Support types: 'bar', 'pie', 'line', 'stat', 'radar'.
+         - For Fintech: Fraud Heatmap (Radar), Transaction Volume.
+         - For Social: User Retention (Line), Interest Graph (Radar).
+         - Include specific numeric data.
 
       Output JSON adhering to the schema.
       `,
@@ -108,7 +107,7 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
                type: Type.OBJECT,
                properties: {
                  title: { type: Type.STRING },
-                 type: { type: Type.STRING, enum: ['bar', 'pie', 'line', 'stat'] },
+                 type: { type: Type.STRING, enum: ['bar', 'pie', 'line', 'stat', 'radar'] },
                  data: {
                    type: Type.ARRAY,
                    items: {
@@ -376,4 +375,76 @@ export const sendMessageToProject = async (
 
   const response = await chat.sendMessage({ message: newMessage });
   return response.text || "I'm not sure how to respond to that.";
+};
+
+/**
+ * Step 4: Generate sequential development prompts
+ */
+export const generateProjectPrompts = async (blueprint: Blueprint): Promise<PromptStep[]> => {
+  const prompt = `
+    Project: ${blueprint.title}
+    Tech Stack: ${blueprint.techStack.map(t => t.tools.join(', ')).join('; ')}
+    Implementation Steps: ${JSON.stringify(blueprint.implementationWorkflow.nodes)}
+    
+    Task: Generate a sequence of 5-8 highly detailed, copy-pasteable prompts that the user can feed into an AI Coding Assistant (like Cursor, Windsurf, or generic LLM) to build this project step-by-step.
+    
+    Each prompt should be self-contained but build on the previous one.
+    Step 1 should always be Project Setup.
+  `;
+
+  const response = await ai.models.generateContent({
+    model: modelId,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            step: { type: Type.NUMBER },
+            title: { type: Type.STRING },
+            prompt: { type: Type.STRING }
+          },
+          required: ["step", "title", "prompt"]
+        }
+      }
+    }
+  });
+
+  if (!response.text) throw new Error("Failed to generate prompts");
+  
+  const rawSteps = JSON.parse(response.text) as any[];
+  return rawSteps.map(s => ({
+    id: crypto.randomUUID(),
+    step: s.step,
+    title: s.title,
+    prompt: s.prompt,
+    status: 'pending'
+  }));
+};
+
+/**
+ * Step 5: Refine/Analyze based on output
+ */
+export const refinePromptStep = async (currentStep: PromptStep, userOutput: string): Promise<string> => {
+  const prompt = `
+    The user ran this prompt: "${currentStep.prompt}"
+    
+    They received this output/error: "${userOutput}"
+    
+    Analyze the output. 
+    1. Did it succeed? 
+    2. If there are errors, explain how to fix them.
+    3. If success, briefly confirm and suggest what to check before moving to the next step.
+    
+    Keep it concise.
+  `;
+  
+  const response = await ai.models.generateContent({
+    model: modelId,
+    contents: prompt
+  });
+
+  return response.text || "Analysis complete.";
 };

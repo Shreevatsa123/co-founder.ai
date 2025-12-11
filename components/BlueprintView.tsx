@@ -4,6 +4,7 @@ import { Blueprint, ChatMessage, Project } from '../types';
 import { Icons } from './Icons';
 import { RevenueChart, MarketDonut, DynamicChart } from './Visualizations';
 import { WorkflowMap } from './WorkflowMap';
+import { PromptManager } from './PromptManager';
 
 interface BlueprintViewProps {
   project: Project;
@@ -17,10 +18,10 @@ const Card: React.FC<{ title?: string; icon?: any; children: React.ReactNode; cl
 }) => (
   <div className={`bg-white border-2 border-slate-900 rounded-xl p-6 sketch-shadow ${className}`}>
     {title && (
-      <div className="flex items-center justify-between mb-4 border-b-2 border-slate-100 pb-2">
+      <div className="flex items-center justify-between mb-4 border-b-2 border-slate-100 pb-2 pr-12">
         <div className="flex items-center gap-2 text-slate-900">
           {Icon && <Icon className="w-5 h-5" />}
-          <h3 className="text-sm font-bold uppercase tracking-wider">{title}</h3>
+          <h3 className="text-sm font-bold uppercase tracking-wider font-display">{title}</h3>
         </div>
         {action}
       </div>
@@ -38,6 +39,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   // Navigation Order: Workflow -> Resources -> Strategy
   const [activeView, setActiveView] = useState<'workflow' | 'resources' | 'strategy'>('workflow');
   const [isMapFullScreen, setIsMapFullScreen] = useState(false);
+  const [showPromptManager, setShowPromptManager] = useState(false);
   const { blueprint: data } = project;
 
   const views = [
@@ -47,9 +49,9 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   ];
 
   return (
-    <div className="relative w-full h-full flex flex-col bg-slate-50 overflow-hidden">
+    <div className="relative w-full h-full flex flex-col bg-slate-50 overflow-hidden font-sans">
       
-      {/* Header - Changed to RELATIVE to prevent overlapping */}
+      {/* Header */}
       <div className="relative z-40 flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200/50 flex-shrink-0">
         <button 
           onClick={onToggleSidebar}
@@ -58,8 +60,16 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
         >
           {isSidebarOpen ? <Icons.PanelLeftClose className="w-6 h-6" /> : <Icons.PanelLeftOpen className="w-6 h-6" />}
         </button>
-        <div className="min-w-0">
-           <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate">{data.title}</h1>
+        <div className="min-w-0 flex-1 flex items-center justify-between">
+           <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate font-display">{data.title}</h1>
+           
+           <button 
+             onClick={() => setShowPromptManager(true)}
+             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-lg shadow-sm transition-all"
+           >
+             <Icons.Sparkles className="w-4 h-4" />
+             <span className="hidden sm:inline">Build Prompts</span>
+           </button>
         </div>
       </div>
 
@@ -83,7 +93,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
           <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3">
+                  <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3 font-display">
                     <Icons.Book className="w-8 h-8 text-indigo-600" />
                     Resources, Scope & Tech
                   </h2>
@@ -91,11 +101,11 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
 
                 {/* Project Summary Description */}
                 <div className="md:col-span-2 bg-indigo-50 border-2 border-indigo-100 rounded-xl p-6 mb-4">
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-900 mb-2">Project Summary</h3>
+                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-900 mb-2 font-display">Project Summary</h3>
                   <p className="text-slate-700 leading-relaxed">{data.summary}</p>
                 </div>
 
-                {/* Scope / MVP Features (Updated Styling) */}
+                {/* Scope / MVP Features */}
                 <Card title="Scope & MVP Features" icon={Icons.Layers} className="md:col-span-2">
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="space-y-3">
@@ -200,7 +210,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
           <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3">
+                  <h2 className="text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3 font-display">
                     <Icons.Trending className="w-8 h-8 text-indigo-600" />
                     Strategy, Risks & Market
                   </h2>
@@ -236,10 +246,9 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-50">
          {views.map(view => (
             <div key={view.id} className="relative group flex items-center justify-end">
-               {/* Label (Tooltip style on left) */}
-               <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg">
+               {/* Label */}
+               <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg font-display">
                   {view.label}
-                  {/* Arrow tip */}
                   <div className="absolute top-1/2 -right-1 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
                </div>
 
@@ -257,6 +266,13 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
          ))}
       </div>
 
+      {showPromptManager && (
+         <PromptManager 
+           blueprint={data}
+           onUpdateBlueprint={(bp) => onUpdateProject({ ...project, blueprint: bp })}
+           onClose={() => setShowPromptManager(false)}
+         />
+      )}
     </div>
   );
 };

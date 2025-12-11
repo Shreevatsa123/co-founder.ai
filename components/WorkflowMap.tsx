@@ -11,7 +11,7 @@ interface WorkflowMapProps {
   onToggleFullScreen: () => void;
 }
 
-type ToolType = 'select' | 'pan' | 'pencil' | 'line';
+type ToolType = 'select' | 'pan' | 'pencil' | 'line' | 'eraser';
 
 export const WorkflowMap: React.FC<WorkflowMapProps> = ({ 
   project, 
@@ -27,6 +27,48 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<ToolType>('select');
+  
+  // History Stack for Undo/Redo
+  const [history, setHistory] = useState<AppWorkflow[]>([]);
+  const [future, setFuture] = useState<AppWorkflow[]>([]);
+  
+  // Initialize history with current state on mount
+  useEffect(() => {
+    if (history.length === 0 && appWorkflow) {
+      setHistory([appWorkflow]);
+    }
+  }, []);
+
+  const addToHistory = (newState: AppWorkflow) => {
+    setHistory(prev => [...prev, newState]);
+    setFuture([]); // clear future
+  };
+
+  const handleUndo = () => {
+    if (history.length <= 1) return;
+    const current = history[history.length - 1];
+    const previous = history[history.length - 2];
+    
+    setFuture(prev => [current, ...prev]);
+    setHistory(prev => prev.slice(0, -1));
+    
+    onUpdateProject({
+        ...project,
+        blueprint: { ...project.blueprint, appWorkflow: previous }
+    });
+  };
+
+  const handleRedo = () => {
+     if (future.length === 0) return;
+     const next = future[0];
+     setFuture(prev => prev.slice(1));
+     setHistory(prev => [...prev, next]);
+     
+     onUpdateProject({
+         ...project,
+         blueprint: { ...project.blueprint, appWorkflow: next }
+     });
+  };
   
   // AI Interaction
   const [aiInput, setAiInput] = useState('');
@@ -52,9 +94,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     buildWorkflow.nodes.find(n => n.id === selectedNodeId);
 
   // --- 1. Helper: Calculate Hierarchy Levels ---
-  // Returns topological levels. 
-  // For System (Horizontal): Level 0 is Leftmost column.
-  // For Build (Vertical): Level 0 is Topmost row.
   const getLevels = (nodes: WorkflowNode[], edges: any[]) => {
     const nodeLevels: Record<string, number> = {};
     nodes.forEach(n => nodeLevels[n.id] = 0);
@@ -85,23 +124,20 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
   const systemColumns = useMemo(() => getLevels(systemWorkflow.nodes, systemWorkflow.edges), [systemWorkflow]);
   const buildRows = useMemo(() => getLevels(buildWorkflow.nodes, buildWorkflow.edges), [buildWorkflow]);
 
-  // --- 2. Calculate Arrow Paths (STABLE VERSION) ---
+  // --- 2. Calculate Arrow Paths ---
   const calculateEdges = useCallback(() => {
     if (!contentRef.current) return;
     
-    // We calculate edges based on internal OFFSET positions, ignoring zoom/viewport entirely.
     const newPaths: {id: string, d: string, label?: string, x?: number, y?: number}[] = [];
 
     const getCenter = (id: string) => {
        const el = document.getElementById(`node-${id}`);
        if (!el || !contentRef.current) return null;
        
-       // Calculate offset relative to contentRef
        let x = el.offsetLeft;
        let y = el.offsetTop;
        let parent = el.offsetParent as HTMLElement;
        
-       // Traverse up until we hit the contentRef
        while(parent && parent !== contentRef.current) {
           x += parent.offsetLeft;
           y += parent.offsetTop;
@@ -123,7 +159,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                 let path = '';
                 
                 if (orientation === 'horizontal') {
-                   // Horizontal Curve (Left to Right)
                    const controlOffset = Math.abs(end.x - start.x) * 0.5;
                    path = `
                     M ${start.x} ${start.y}
@@ -132,7 +167,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                       ${end.x} ${end.y}
                    `;
                 } else {
-                   // Vertical Curve (Top to Bottom)
                    const controlOffset = Math.abs(end.y - start.y) * 0.5;
                    path = `
                     M ${start.x} ${start.y}
@@ -153,15 +187,12 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
         });
     };
 
-    // System = Horizontal
     processEdges(systemWorkflow.edges, 'sys', 'horizontal');
-    // Build = Vertical
     processEdges(buildWorkflow.edges, 'imp', 'vertical');
 
     setEdgePaths(newPaths);
   }, [systemWorkflow, buildWorkflow]);
 
-  // Trigger calculation on mount, resize, and updates
   useEffect(() => {
     const timer = setTimeout(calculateEdges, 100);
     const resizeObserver = new ResizeObserver(() => calculateEdges());
@@ -217,6 +248,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
          note.id === draggingNoteId ? { ...note, x: note.x + dx, y: note.y + dy } : note
        );
        
+       // Note: we don't save to history on every drag move, only on mouse up usually, 
+       // but for smoothness we update state. We'll skip history here for perf.
        onUpdateProject({
          ...project,
          blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, stickyNotes: updatedNotes } }
@@ -238,9 +271,11 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     setDraggingNoteId(null);
     if (currentDrawing) {
       const updatedDrawings = [...(appWorkflow.drawings || []), currentDrawing];
+      const newWorkflow = { ...appWorkflow, drawings: updatedDrawings };
+      addToHistory(newWorkflow);
       onUpdateProject({
         ...project,
-        blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, drawings: updatedDrawings } }
+        blueprint: { ...project.blueprint, appWorkflow: newWorkflow }
       });
       setCurrentDrawing(null);
     }
@@ -251,10 +286,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     e.stopPropagation();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setZoom(prev => Math.min(Math.max(0.1, prev * delta), 3));
-  };
-
-  const handleContextMenu = (e: React.MouseEvent) => {
-    e.preventDefault();
   };
 
   // --- Actions ---
@@ -269,11 +300,20 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
           appWorkflow.stickyNotes
       );
 
+      // CLEAR notes and drawings on successful apply
+      const newAppWorkflow = { 
+        ...updates.systemWorkflow, 
+        stickyNotes: [], 
+        drawings: [] 
+      };
+
+      addToHistory(newAppWorkflow);
+
       onUpdateProject({
         ...project,
         blueprint: { 
             ...project.blueprint, 
-            appWorkflow: { ...updates.systemWorkflow, stickyNotes: [], drawings: appWorkflow.drawings },
+            appWorkflow: newAppWorkflow,
             implementationWorkflow: updates.implementationWorkflow,
             techStack: updates.techStack
         }
@@ -288,7 +328,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
   };
 
   const addStickyNote = (color: StickyNote['color']) => {
-    // Add note near the center of the current view
     const centerX = (-position.x + (containerRef.current?.offsetWidth || 800)/2) / zoom;
     const centerY = (-position.y + (containerRef.current?.offsetHeight || 600)/2) / zoom;
     
@@ -300,9 +339,12 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
       color
     };
     const updatedNotes = [...(appWorkflow.stickyNotes || []), newNote];
+    const newWorkflow = { ...appWorkflow, stickyNotes: updatedNotes };
+    addToHistory(newWorkflow);
+    
     onUpdateProject({
         ...project,
-        blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, stickyNotes: updatedNotes } }
+        blueprint: { ...project.blueprint, appWorkflow: newWorkflow }
     });
   };
 
@@ -310,6 +352,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     const updatedNotes = (appWorkflow.stickyNotes || []).map(n => 
        n.id === id ? { ...n, content } : n
     );
+    // Don't add to history on every keystroke
     onUpdateProject({
         ...project,
         blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, stickyNotes: updatedNotes } }
@@ -318,14 +361,32 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
 
   const deleteStickyNote = (id: string) => {
     const updatedNotes = (appWorkflow.stickyNotes || []).filter(n => n.id !== id);
+    const newWorkflow = { ...appWorkflow, stickyNotes: updatedNotes };
+    addToHistory(newWorkflow);
+    
     onUpdateProject({
         ...project,
-        blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, stickyNotes: updatedNotes } }
+        blueprint: { ...project.blueprint, appWorkflow: newWorkflow }
+    });
+  }
+
+  const handleDeleteDrawing = (id: string) => {
+    if (activeTool !== 'eraser') return;
+    const updatedDrawings = (appWorkflow.drawings || []).filter(d => d.id !== id);
+    const newWorkflow = { ...appWorkflow, drawings: updatedDrawings };
+    addToHistory(newWorkflow);
+    onUpdateProject({
+      ...project,
+      blueprint: { ...project.blueprint, appWorkflow: newWorkflow }
     });
   }
   
   const handleNoteDragStart = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); 
+    if (activeTool === 'eraser') {
+      deleteStickyNote(id);
+      return;
+    }
     if (activeTool === 'select' || activeTool === 'pan') {
       setDraggingNoteId(id);
       setLastMousePos({ x: e.clientX, y: e.clientY });
@@ -358,11 +419,9 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
 
   const handleUpdateNotes = (notes: string) => {
      if (!selectedNodeId) return;
-     // Helper to update active node, check both workflows
      const updateInWorkflow = (wf: AppWorkflow) => {
          return wf.nodes.map(n => n.id === selectedNodeId ? { ...n, userNotes: notes } : n);
      };
-     
      onUpdateProject({
         ...project,
         blueprint: { 
@@ -373,7 +432,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
      });
   };
 
-  // --- Render Helper Functions ---
+  // --- Render Helpers ---
   const renderNode = (node: WorkflowNode) => {
     const isSelected = selectedNodeId === node.id;
     const isAction = node.type === 'action';
@@ -456,18 +515,27 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     if (currentDrawing) allDrawings.push(currentDrawing);
 
     return allDrawings.map(d => {
-       if (d.type === 'line' && d.points.length >= 2) {
-         return (
-           <line 
-             key={d.id} 
-             x1={d.points[0].x} y1={d.points[0].y} 
-             x2={d.points[d.points.length-1].x} y2={d.points[d.points.length-1].y}
-             stroke={d.color} strokeWidth="2" strokeDasharray="5,5"
-           />
-         );
-       }
        const pathData = d.points.map((p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`)).join(' ');
-       return <path key={d.id} d={pathData} stroke={d.color} strokeWidth="2" fill="none" strokeLinecap="round" />;
+       const isLine = d.type === 'line' && d.points.length >= 2;
+       
+       return (
+         <g key={d.id} onClick={() => handleDeleteDrawing(d.id)} className={activeTool === 'eraser' ? 'cursor-pointer hover:opacity-50' : ''}>
+           {isLine ? (
+             <line 
+               x1={d.points[0].x} y1={d.points[0].y} 
+               x2={d.points[d.points.length-1].x} y2={d.points[d.points.length-1].y}
+               stroke={d.color} strokeWidth="3" strokeDasharray="5,5"
+               className="pointer-events-auto"
+             />
+           ) : (
+             <path 
+               d={pathData} 
+               stroke={d.color} strokeWidth="3" fill="none" strokeLinecap="round" 
+               className="pointer-events-auto"
+             />
+           )}
+         </g>
+       );
     });
   }
 
@@ -482,6 +550,11 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
               <button onClick={() => setActiveTool('pan')} className={`p-2 rounded hover:bg-slate-100 ${activeTool === 'pan' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`} title="Pan"><Icons.Maximize className="w-5 h-5" /></button>
               <button onClick={() => setActiveTool('pencil')} className={`p-2 rounded hover:bg-slate-100 ${activeTool === 'pencil' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`} title="Pencil"><Icons.Pencil className="w-5 h-5" /></button>
               <button onClick={() => setActiveTool('line')} className={`p-2 rounded hover:bg-slate-100 ${activeTool === 'line' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`} title="Line"><Icons.Line className="w-5 h-5" /></button>
+              <button onClick={() => setActiveTool('eraser')} className={`p-2 rounded hover:bg-slate-100 ${activeTool === 'eraser' ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500'}`} title="Eraser"><Icons.Eraser className="w-5 h-5" /></button>
+
+              <div className="w-full h-px bg-slate-100"></div>
+              <button onClick={handleUndo} disabled={history.length <= 1} className="p-2 text-slate-500 hover:text-slate-900 disabled:opacity-30" title="Undo"><Icons.Undo className="w-4 h-4" /></button>
+              <button onClick={handleRedo} disabled={future.length === 0} className="p-2 text-slate-500 hover:text-slate-900 disabled:opacity-30" title="Redo"><Icons.Redo className="w-4 h-4" /></button>
 
               <div className="w-full h-px bg-slate-100"></div>
               <button onClick={() => addStickyNote('yellow')} className="w-6 h-6 bg-yellow-200 border border-yellow-400 rounded hover:scale-110 shadow-sm"></button>
@@ -499,15 +572,14 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
       {/* Canvas Area */}
       <div 
         ref={containerRef}
-        className={`flex-1 overflow-hidden bg-grid-pattern relative select-none ${isPanning || activeTool === 'pan' ? 'cursor-grabbing' : activeTool === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
+        className={`flex-1 overflow-hidden bg-grid-pattern relative select-none ${isPanning || activeTool === 'pan' ? 'cursor-grabbing' : activeTool === 'select' ? 'cursor-default' : activeTool === 'eraser' ? 'cursor-not-allowed' : 'cursor-crosshair'}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
         onWheel={handleWheel}
-        onContextMenu={handleContextMenu}
+        onContextMenu={(e) => e.preventDefault()}
       >
-           {/* Zoom/Pan Container */}
            <div 
              ref={contentRef}
              className="min-w-full min-h-full transition-transform duration-75 ease-out origin-top-left"
@@ -547,7 +619,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                 {renderDrawings()}
               </svg>
 
-              {/* TECH STACK ON CANVAS (Moved Top Left & Fixed Position) */}
+              {/* TECH STACK ON CANVAS */}
               <div className="absolute top-12 left-12 w-80 bg-white border-2 border-slate-900 rounded-xl p-6 sketch-shadow z-20">
                  <h4 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2 flex items-center gap-2">
                     <Icons.Code className="w-4 h-4" /> RECOMMENDED TECH STACK
@@ -569,7 +641,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
               </div>
 
               {/* DUAL WORKFLOW LAYOUT */}
-              {/* Added padding and left margin to clear the tech stack */}
               <div className="flex flex-col gap-48 p-20 pl-[420px] pt-12 z-10 w-max">
                  
                  {/* 1. SYSTEM ARCHITECTURE (Horizontal) */}
@@ -587,7 +658,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                     </div>
                  </div>
 
-                 {/* Divider */}
                  <div className="w-full h-px bg-slate-300 my-12"></div>
 
                  {/* 2. IMPLEMENTATION GUIDE (Vertical) */}
@@ -596,7 +666,6 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">2</span>
                        How to build this project?
                     </h2>
-                     {/* Changed from flex-row to flex-col for Vertical Layout */}
                      <div className="flex flex-col items-center gap-32">
                       {buildRows.map((rowNodes, rowIndex) => (
                         <div key={`build-row-${rowIndex}`} className="flex flex-row gap-64 items-center justify-center">
@@ -617,6 +686,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        note.color === 'blue' ? 'bg-blue-100 border-blue-200' :
                        note.color === 'green' ? 'bg-green-100 border-green-200' : 
                        'bg-pink-100 border-pink-200'}
+                     ${activeTool === 'eraser' ? 'opacity-50 hover:bg-red-200 cursor-pointer' : ''}
                    `}
                    style={{ left: note.x, top: note.y }}
                    onMouseDown={(e) => handleNoteDragStart(e, note.id)}
@@ -639,14 +709,14 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
            </div>
       </div>
 
-      {/* Side Detail Panel */}
+      {/* Side Detail Panel (Added Padding to prevent button overlap) */}
       <div className={`
         w-80 bg-white border-l-2 border-slate-900 z-30 transition-transform duration-300 flex flex-col absolute top-0 right-0 h-full shadow-2xl pt-20
         ${selectedNodeId ? 'translate-x-0' : 'translate-x-full'}
       `}>
            {selectedNode && (
              <>
-               <div className="p-6 border-b-2 border-slate-100 flex items-start justify-between bg-slate-50">
+               <div className="p-6 border-b-2 border-slate-100 flex items-start justify-between bg-slate-50 pr-12">
                  <div>
                    <h3 className="text-lg font-bold text-slate-900">{selectedNode.label}</h3>
                    <span className="text-xs font-mono text-slate-500 mt-1 block uppercase">{selectedNode.type}</span>
@@ -657,7 +727,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                </div>
 
                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                 <div className="prose prose-sm">
+                 <div className="prose prose-sm pr-4">
                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h4>
                    <p className="text-slate-800 leading-relaxed text-sm">{selectedNode.details}</p>
                  </div>
