@@ -130,7 +130,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     
     const newPaths: {id: string, d: string, label?: string, x?: number, y?: number}[] = [];
 
-    const getCenter = (id: string) => {
+    const getCenterAndDim = (id: string) => {
        const el = document.getElementById(`node-${id}`);
        if (!el || !contentRef.current) return null;
        
@@ -146,33 +146,41 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
 
        return {
          x: x + el.offsetWidth / 2,
-         y: y + el.offsetHeight / 2
+         y: y + el.offsetHeight / 2,
+         width: el.offsetWidth,
+         height: el.offsetHeight
        };
     };
 
     const processEdges = (edges: any[], prefix: string, orientation: 'horizontal' | 'vertical') => {
         edges.forEach((edge, idx) => {
-            const start = getCenter(edge.from);
-            const end = getCenter(edge.to);
+            const start = getCenterAndDim(edge.from);
+            const end = getCenterAndDim(edge.to);
 
             if (start && end) {
                 let path = '';
+                let targetX = end.x;
+                let targetY = end.y;
                 
                 if (orientation === 'horizontal') {
-                   const controlOffset = Math.abs(end.x - start.x) * 0.5;
+                   // Target left edge of destination node
+                   targetX = end.x - (end.width / 2);
+                   const controlOffset = Math.abs(targetX - start.x) * 0.5;
                    path = `
                     M ${start.x} ${start.y}
                     C ${start.x + controlOffset} ${start.y},
-                      ${end.x - controlOffset} ${end.y},
-                      ${end.x} ${end.y}
+                      ${targetX - controlOffset} ${targetY},
+                      ${targetX} ${targetY}
                    `;
                 } else {
-                   const controlOffset = Math.abs(end.y - start.y) * 0.5;
+                   // Target top edge of destination node
+                   targetY = end.y - (end.height / 2);
+                   const controlOffset = Math.abs(targetY - start.y) * 0.5;
                    path = `
                     M ${start.x} ${start.y}
                     C ${start.x} ${start.y + controlOffset},
-                      ${end.x} ${end.y - controlOffset},
-                      ${end.x} ${end.y}
+                      ${targetX} ${targetY - controlOffset},
+                      ${targetX} ${targetY}
                    `;
                 }
 
@@ -180,8 +188,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                   id: `${prefix}-edge-${idx}`, 
                   d: path,
                   label: edge.label,
-                  x: start.x + (end.x - start.x) / 2,
-                  y: start.y + (end.y - start.y) / 2
+                  x: start.x + (targetX - start.x) / 2,
+                  y: start.y + (targetY - start.y) / 2
                 });
             }
         });
@@ -666,7 +674,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">2</span>
                        How to build this project?
                     </h2>
-                     <div className="flex flex-col items-center gap-32">
+                     <div className="flex flex-col items-start gap-32 pl-12">
                       {buildRows.map((rowNodes, rowIndex) => (
                         <div key={`build-row-${rowIndex}`} className="flex flex-row gap-64 items-center justify-center">
                           {rowNodes.map(node => renderNode(node))}
@@ -709,13 +717,13 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
            </div>
       </div>
 
-      {/* Side Detail Panel (Added Padding to prevent button overlap) */}
+      {/* Side Detail Panel (Updated padding and width) */}
       <div className={`
-        w-80 bg-white border-l-2 border-slate-900 z-30 transition-transform duration-300 flex flex-col absolute top-0 right-0 h-full shadow-2xl pt-20
+        w-96 bg-white border-l-2 border-slate-900 z-30 transition-transform duration-300 flex flex-col absolute top-0 right-0 h-full shadow-2xl pt-20
         ${selectedNodeId ? 'translate-x-0' : 'translate-x-full'}
       `}>
            {selectedNode && (
-             <div className="h-full flex flex-col pr-20">
+             <div className="h-full flex flex-col">
                <div className="p-6 border-b-2 border-slate-100 flex items-start justify-between bg-slate-50">
                  <div>
                    <h3 className="text-lg font-bold text-slate-900">{selectedNode.label}</h3>
@@ -727,7 +735,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                </div>
 
                <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                 <div className="prose prose-sm pr-4">
+                 {/* Applied pr-12 only to the text description block */}
+                 <div className="prose prose-sm pr-12">
                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h4>
                    <p className="text-slate-800 leading-relaxed text-sm">{selectedNode.details}</p>
                  </div>
