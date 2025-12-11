@@ -41,8 +41,15 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, className 
         };
 
         recognitionInstance.onerror = (event: any) => {
+          // Ignore 'no-speech' (user stopped talking) and 'aborted' (manual stop/unmount)
+          // as these are expected behaviors in many browsers.
+          if (event.error === 'no-speech' || event.error === 'aborted') {
+            return;
+          }
+
           console.error('Speech recognition error', event.error);
-          if (event.error === 'not-allowed') {
+          
+          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
             setIsListening(false);
             shouldBeListeningRef.current = false;
           }
@@ -54,6 +61,7 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, className 
              try {
                recognitionInstance.start();
              } catch (e) {
+               // Fail silently if restart fails, usually means user denied permission or device issue
                setIsListening(false);
                shouldBeListeningRef.current = false;
              }
@@ -69,6 +77,9 @@ export const VoiceInput: React.FC<VoiceInputProps> = ({ onTranscript, className 
     }
     
     return () => {
+      // When unmounting, we stop listening. 
+      // This might trigger 'aborted' error which is handled above.
+      shouldBeListeningRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.abort();
       }
