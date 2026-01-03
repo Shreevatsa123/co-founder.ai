@@ -46,7 +46,12 @@ import {
   Sparkles,
   Copy,
   ClipboardCheck,
-  Radar
+  Radar,
+  Download,
+  FileJson,
+  Info,
+  Globe,
+  Upload
 } from 'lucide-react';
 
 export const Icons = {
@@ -95,5 +100,10 @@ export const Icons = {
   Sparkles,
   Copy,
   Clipboard: ClipboardCheck,
-  Radar
+  Radar,
+  Download,
+  FileJson,
+  Info,
+  Globe,
+  Upload
 };

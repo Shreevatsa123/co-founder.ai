@@ -3,6 +3,7 @@ export interface Resource {
   title: string;
   type: 'paper' | 'video' | 'article' | 'repo' | 'tool';
   description: string;
+  url: string;
 }
 
 export interface ConceptNode {

@@ -3,7 +3,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { Blueprint, ChatMessage, ClarificationResponse, AppWorkflow, StickyNote, TechItem, PromptStep } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-const modelId = "gemini-2.5-flash";
+const modelId = "gemini-3-flash-preview"; // Upgraded to latest flash for better link retrieval/grounding capabilities
 
 /**
  * Step 1: Analyze the prompt to see if we need to ask clarifying questions.
@@ -61,10 +61,11 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
       2. 'implementationWorkflow': A diagram of how to BUILD the system (Step-by-step dev guide: Setup -> Frontend -> Backend -> Deploy).
       3. 'techStack': Specific, modern recommendations.
       4. 'strategicInsights': Generate 3-4 domain-specific data visualizations.
-         - Support types: 'bar', 'pie', 'line', 'stat', 'radar'.
-         - For Fintech: Fraud Heatmap (Radar), Transaction Volume.
-         - For Social: User Retention (Line), Interest Graph (Radar).
-         - Include specific numeric data.
+      5. 'recommendedResources': Provide 3-5 REAL links (GitHub repos, arXiv papers, YouTube tutorials, or documentation). 
+         MANDATORY: The 'url' property must be a valid, existing, and relevant HTTPS URL.
+         - For repos: Use github.com links.
+         - For tools: Use official product websites.
+         - For papers: Use arxiv.org links.
 
       Output JSON adhering to the schema.
       `,
@@ -231,9 +232,10 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
               properties: {
                 title: { type: Type.STRING },
                 type: { type: Type.STRING, enum: ["paper", "video", "article", "repo", "tool"] },
-                description: { type: Type.STRING }
+                description: { type: Type.STRING },
+                url: { type: Type.STRING }
               },
-              required: ["title", "type", "description"]
+              required: ["title", "type", "description", "url"]
             }
           }
         },

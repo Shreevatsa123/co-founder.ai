@@ -1,11 +1,11 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { InputHero } from './components/InputHero';
 import { BlueprintView } from './components/BlueprintView';
 import { ClarificationView } from './components/ClarificationView';
 import { generateBlueprint, analyzeRequest } from './services/gemini';
 import { AppState, Project, ChatMessage, Blueprint } from './types';
 import { Icons } from './components/Icons';
+import { SilentTracker } from './components/SilentTracker';
 
 function App() {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -13,6 +13,7 @@ function App() {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Temporary state for the creation flow
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
@@ -44,7 +45,6 @@ function App() {
     localStorage.setItem('conceptForge_projects', JSON.stringify(projects));
   }, [projects]);
 
-  // Step 1: User submits initial idea -> Analyze it
   const handleInitialSubmit = async (prompt: string) => {
     setPendingPrompt(prompt);
     setAppState(AppState.ANALYZING);
@@ -52,22 +52,18 @@ function App() {
     
     try {
       const analysis = await analyzeRequest(prompt);
-      
       if (analysis.isClarificationNeeded && analysis.questions.length > 0) {
         setClarifyingQuestions(analysis.questions);
         setAppState(AppState.CLARIFYING);
       } else {
-        // Idea is detailed enough, proceed directly
         await handleFinalGeneration(prompt, []);
       }
     } catch (err) {
       console.error(err);
-      // Fallback: just try to generate if analysis fails
       await handleFinalGeneration(prompt, []);
     }
   };
 
-  // Step 2: User answers questions (or skips) -> Generate Blueprint
   const handleClarificationSubmit = async (qaPairs: {question: string, answer: string}[]) => {
     await handleFinalGeneration(pendingPrompt, qaPairs);
   };
@@ -76,7 +72,6 @@ function App() {
     setAppState(AppState.GENERATING);
     try {
       const blueprintData = await generateBlueprint(prompt, qaPairs);
-      
       const blueprint: Blueprint = {
         ...blueprintData,
         clarifyingQuestions: clarifyingQuestions
@@ -129,6 +124,34 @@ function App() {
     }
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const project = JSON.parse(event.target?.result as string) as Project;
+        // Basic validation
+        if (project.id && project.blueprint) {
+          setProjects(prev => [project, ...prev.filter(p => p.id !== project.id)]);
+          setCurrentProject(project);
+          setAppState(AppState.SUCCESS);
+        } else {
+          alert("Invalid project file format.");
+        }
+      } catch (err) {
+        alert("Failed to parse project file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
+
   const updateProject = (updatedProject: Project) => {
     setCurrentProject(updatedProject);
     setProjects(prev => prev.map(p => p.id === updatedProject.id ? updatedProject : p));
@@ -138,7 +161,6 @@ function App() {
     setExpandedGroups(prev => ({...prev, [group]: !prev[group]}));
   }
 
-  // Group projects by date
   const groupedProjects = projects.reduce((groups, project) => {
     const date = new Date(project.createdAt);
     const today = new Date();
@@ -164,21 +186,30 @@ function App() {
   const groupOrder = ['Today', 'Yesterday', 'Last 7 Days', 'Older'];
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-800 overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 text-slate-800 overflow-hidden font-sans bg-grid-pattern">
       
       {/* Sidebar */}
       <aside 
-        className={`${isSidebarOpen ? 'w-72 border-r-2' : 'w-0 border-r-0'} bg-white border-slate-900 transition-all duration-300 flex flex-col absolute md:relative z-20 h-full shadow-lg md:shadow-none overflow-hidden`}
+        className={`${isSidebarOpen ? 'w-72 border-r-2' : 'w-0 border-r-0'} bg-white border-slate-900 transition-all duration-300 flex flex-col absolute md:relative z-20 h-full shadow-lg md:shadow-none overflow-hidden print:hidden`}
       >
         <div className="p-4 border-b-2 border-slate-900 flex items-center justify-between min-w-[18rem] bg-white">
           <div className="flex items-center gap-2 font-bold text-slate-900">
             <Icons.Book className="w-5 h-5 text-indigo-600" />
             <span className="font-display">My Notebooks</span>
           </div>
-          {/* Toggle Button Removed as requested */}
         </div>
 
-        <div className="p-4 min-w-[18rem]">
+        {/* Persistence Notice */}
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 min-w-[18rem]">
+           <div className="flex gap-2">
+             <Icons.Alert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+             <p className="text-[10px] text-amber-800 font-medium leading-relaxed">
+               Work is saved in your browser locally. Download PDF or JSON to prevent data loss.
+             </p>
+           </div>
+        </div>
+
+        <div className="p-4 min-w-[18rem] space-y-2">
           <button 
             onClick={handleNewProject}
             className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-xl transition-all font-bold text-sm shadow-sm border-2 border-slate-900 sketch-shadow hover:sketch-shadow-hover active:sketch-shadow-active active:translate-x-[2px] active:translate-y-[2px]"
@@ -186,6 +217,21 @@ function App() {
             <Icons.Plus className="w-4 h-4" />
             New Project
           </button>
+          
+          <button 
+            onClick={handleImportClick}
+            className="w-full flex items-center justify-center gap-2 bg-white hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-xl transition-all font-bold text-xs border-2 border-slate-200"
+          >
+            <Icons.Upload className="w-3.5 h-3.5" />
+            Import JSON Backup
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileImport} 
+            accept=".json" 
+            className="hidden" 
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-2 min-w-[18rem]">
@@ -212,7 +258,6 @@ function App() {
                       <Icons.ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-600 transition-colors" />
                    )}
                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-900 font-display">{group}</span>
-                   <span className="ml-auto text-[10px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">{groupProjects.length}</span>
                  </button>
                  
                  {expandedGroups[group] && (
@@ -250,21 +295,24 @@ function App() {
             );
           })}
         </div>
+        
+        {/* Invisible Analytics Provider */}
+        <SilentTracker />
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative bg-slate-50/50 bg-grid-pattern h-full overflow-hidden">
+      <main className="flex-1 flex flex-col relative h-full overflow-hidden">
         
-        {/* Global Sidebar Toggle (visible when sidebar is closed, except in BlueprintView where it has its own) */}
+        {/* Global Sidebar Toggle */}
         {!isSidebarOpen && appState !== AppState.SUCCESS && (
-           <div className="absolute top-4 left-4 z-30">
+           <div className="absolute top-4 left-4 z-30 print:hidden">
              <button onClick={() => setIsSidebarOpen(true)} className="p-2 bg-white border-2 border-slate-900 rounded-lg shadow-sm text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-colors sketch-shadow-sm">
                <Icons.PanelLeftOpen className="w-5 h-5" />
              </button>
            </div>
         )}
 
-        <div className="flex-1 overflow-y-auto w-full">
+        <div className="flex-1 overflow-y-auto w-full h-full">
           {appState === AppState.ERROR && (
             <div className="max-w-md mx-auto mt-12 p-4 bg-rose-50 border-2 border-rose-200 rounded-lg flex items-center gap-3 shadow-sm">
               <Icons.Alert className="text-rose-500 w-5 h-5" />

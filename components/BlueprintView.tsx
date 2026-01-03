@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Blueprint, ChatMessage, Project } from '../types';
 import { Icons } from './Icons';
 import { RevenueChart, MarketDonut, DynamicChart } from './Visualizations';
 import { WorkflowMap } from './WorkflowMap';
 import { PromptManager } from './PromptManager';
+import { ExportView } from './ExportView';
 
 interface BlueprintViewProps {
   project: Project;
@@ -36,11 +38,45 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   onToggleSidebar, 
   isSidebarOpen 
 }) => {
-  // Navigation Order: Workflow -> Resources -> Strategy
   const [activeView, setActiveView] = useState<'workflow' | 'resources' | 'strategy'>('workflow');
-  const [isMapFullScreen, setIsMapFullScreen] = useState(false);
   const [showPromptManager, setShowPromptManager] = useState(false);
+  
+  // Export status
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStage, setExportStage] = useState('');
+
   const { blueprint: data } = project;
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setIsExporting(false);
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
+  const handleExportPDF = () => {
+    setIsExporting(true);
+    setExportStage('Preparing your notebook...');
+
+    setTimeout(() => {
+      setExportStage('Almost ready...');
+      setTimeout(() => {
+        window.print();
+      }, 500);
+    }, 800);
+  };
+
+  const handleDownloadBackup = () => {
+    const jsonString = JSON.stringify(project, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${project.title.replace(/\s+/g, '_')}_backup.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const views = [
     { id: 'workflow', label: 'Workflow', icon: Icons.GitMerge },
@@ -48,27 +84,60 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
     { id: 'strategy', label: 'Strategy & Risks', icon: Icons.Trending },
   ];
 
+  const printRoot = document.getElementById('print-root');
+  const printPortal = printRoot ? ReactDOM.createPortal(
+    <ExportView project={project} />,
+    printRoot
+  ) : null;
+
   return (
-    <div className="relative w-full h-full flex flex-col bg-slate-50 overflow-hidden font-sans">
+    <div className="relative w-full h-full flex flex-col bg-transparent overflow-hidden font-sans">
       
-      {/* Header */}
+      {printPortal}
+
+      {/* SIMPLER EXPORT NOTICE */}
+      {isExporting && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center no-print">
+          <div className="bg-white border-2 border-slate-900 rounded-3xl p-10 sketch-shadow max-w-sm w-full">
+            <Icons.Loader className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-6" />
+            <h2 className="text-xl font-bold text-slate-900 mb-2">{exportStage}</h2>
+            <p className="text-sm text-slate-500">The print dialog will open automatically.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main Application Header */}
       <div className="relative z-40 flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200/50 flex-shrink-0">
         <button 
           onClick={onToggleSidebar}
           className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100/50 rounded-lg transition-all flex-shrink-0"
-          title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}
         >
           {isSidebarOpen ? <Icons.PanelLeftClose className="w-6 h-6" /> : <Icons.PanelLeftOpen className="w-6 h-6" />}
         </button>
         <div className="min-w-0 flex-1 flex items-center justify-between">
            <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate font-display">{data.title}</h1>
+           <div className="flex items-center gap-2">
+             <button 
+               onClick={handleDownloadBackup}
+               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+               title="JSON Backup"
+             >
+               <Icons.FileJson className="w-4 h-4" />
+               JSON
+             </button>
+             <button 
+               onClick={handleExportPDF}
+               className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold sketch-shadow-sm hover:sketch-shadow transition-all group"
+             >
+               <Icons.Download className="w-4 h-4" />
+               PDF Report
+             </button>
+           </div>
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Main Views */}
       <div className="flex-1 relative overflow-hidden"> 
-        
-        {/* View: Workflow (Map) */}
         {activeView === 'workflow' && (
            <div className="absolute inset-0 z-0 pt-0">
              <WorkflowMap 
@@ -80,9 +149,8 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
            </div>
         )}
 
-        {/* View: Resources & Scope */}
         {activeView === 'resources' && (
-          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="absolute inset-0 bg-transparent overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-3 font-display">
@@ -91,13 +159,11 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                   </h2>
                 </div>
 
-                {/* Project Summary Description */}
-                <div className="md:col-span-2 bg-indigo-50 border-2 border-indigo-100 rounded-xl p-6 mb-4">
+                <div className="md:col-span-2 bg-indigo-50 border-2 border-indigo-100 rounded-xl p-6 mb-4 sketch-shadow-sm">
                   <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-900 mb-2 font-display">Project Summary</h3>
                   <p className="text-slate-700 leading-relaxed">{data.summary}</p>
                 </div>
 
-                {/* Scope / MVP Features */}
                 <Card title="Scope & MVP Features" icon={Icons.Layers} className="md:col-span-2">
                   <div className="grid md:grid-cols-3 gap-6">
                     <div className="space-y-3">
@@ -141,7 +207,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                   </div>
                 </Card>
 
-                {/* Tech Stack */}
                  <Card title="Recommended Tech Stack" icon={Icons.Code}>
                     <div className="space-y-4">
                       {data.techStack.map((stack, idx) => (
@@ -149,7 +214,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                           <span className="text-xs font-bold text-slate-400 uppercase">{stack.category}</span>
                           <div className="flex flex-wrap gap-2">
                             {stack.tools.map((t, i) => (
-                              <span key={i} className="px-3 py-1 bg-slate-800 text-white rounded-md text-xs font-mono font-medium sketch-shadow-sm">
+                              <span key={i} className="px-3 py-1 bg-slate-800 text-white rounded text-xs font-bold shadow-sm">
                                 {t}
                               </span>
                             ))}
@@ -160,7 +225,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                     </div>
                 </Card>
 
-                 {/* Concepts */}
                  <Card title="Core System Concepts" icon={Icons.Brain}>
                     <ul className="space-y-5">
                       {data.coreConcepts.map((concept, idx) => (
@@ -179,10 +243,15 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                     </ul>
                  </Card>
 
-                 {/* Resources List */}
                 <div className="md:col-span-2 grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                    {data.recommendedResources.map((res, idx) => (
-                     <a key={idx} href="#" className="block p-5 bg-white border-2 border-slate-200 hover:border-indigo-600 rounded-xl transition-all group sketch-shadow-sm hover:sketch-shadow">
+                     <a 
+                       key={idx} 
+                       href={res.url || '#'} 
+                       target="_blank" 
+                       rel="noopener noreferrer"
+                       className="block p-5 bg-white border-2 border-slate-200 hover:border-indigo-600 rounded-xl transition-all group sketch-shadow-sm hover:sketch-shadow"
+                     >
                        <div className="flex justify-between mb-3">
                          <span className="text-[10px] uppercase font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">{res.type}</span>
                          <Icons.ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
@@ -192,14 +261,12 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                      </a>
                    ))}
                 </div>
-
              </div>
           </div>
         )}
 
-        {/* View: Strategy & Risks */}
         {activeView === 'strategy' && (
-          <div className="absolute inset-0 bg-slate-50 overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="absolute inset-0 bg-transparent overflow-y-auto p-8 pr-24 animate-in fade-in slide-in-from-right-4 duration-300">
              <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 pb-20">
                 <div className="md:col-span-2">
                   <h2 className="text-3xl font-bold text-slate-900 mb-6 flex items-center gap-3 font-display">
@@ -208,7 +275,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                   </h2>
                 </div>
 
-                {/* NEW Intelligent Strategy Dashboard */}
                 {data.strategicInsights?.map((metric, idx) => (
                    <Card key={idx} title={metric.title} icon={Icons.Activity}>
                       <DynamicChart metric={metric} />
@@ -216,7 +282,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                    </Card>
                 ))}
 
-                 {/* Risks & Liabilities (Moved here) */}
                  <Card title="Risks & Liabilities" icon={Icons.Shield} className="md:col-span-2">
                   <div className="flex flex-wrap gap-3">
                     {data.risksAndLiabilities.map((risk, idx) => (
@@ -227,18 +292,15 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                     ))}
                   </div>
                 </Card>
-
              </div>
           </div>
         )}
-
       </div>
 
       {/* Right Floating Nav Dock */}
       <div className="absolute right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-50">
          {views.map(view => (
             <div key={view.id} className="relative group flex items-center justify-end">
-               {/* Label */}
                <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg font-display">
                   {view.label}
                   <div className="absolute top-1/2 -right-1 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
@@ -259,7 +321,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
          
          <div className="w-full h-px bg-slate-300/50 my-1"></div>
 
-         {/* Build Prompts Button */}
          <div className="relative group flex items-center justify-end">
             <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg font-display">
                 Build Prompts
@@ -267,12 +328,11 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
             </div>
             <button
                onClick={() => setShowPromptManager(true)}
-               className="w-12 h-12 flex items-center justify-center rounded-full border-2 bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 hover:border-indigo-300 transition-all duration-200 sketch-shadow hover:sketch-shadow-hover"
+               className="w-12 h-12 flex items-center justify-center rounded-full border-2 bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all duration-200 sketch-shadow hover:sketch-shadow-hover shadow-sm"
             >
                <Icons.Sparkles className="w-5 h-5" />
             </button>
          </div>
-
       </div>
 
       {showPromptManager && (
