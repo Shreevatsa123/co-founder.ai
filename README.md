@@ -1,6 +1,6 @@
-# ConceptForge Planner (CoFounder.ai)
+# CoFounder.ai
 
-**ConceptForge** is a world-class project conceptualization engine designed for founders, engineers, and product managers. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
+**CoFounder.ai** is a world-class project conceptualization engine designed for founders, engineers, and product managers. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
 
 ## 🚀 Key Features
 
@@ -58,7 +58,7 @@
 
 ## 🧠 Capabilities & Agents
 
-ConceptForge uses specialized system instructions to emulate different roles:
+CoFounder.ai uses specialized system instructions to emulate different roles:
 - **Senior Project Architect**: Analyzes initial prompts for vagueness and ensures all technical bases are covered.
 - **Strategic Project Consultant**: Researches market trends, revenue projections, and competitive landscapes.
 - **Expert System Architect**: Refines complex graph structures and technical stack choices based on iterative user feedback.
