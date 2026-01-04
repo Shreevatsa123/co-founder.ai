@@ -3,7 +3,7 @@
 **CoFounder.ai** is a world-class project conceptualization engine designed for founders, engineers, and product managers. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
 
 ## 🔗 Live Access
-**View the live application here:** [CoFounder.ai](https://your-project-link.com)
+**View the live application here:** [CoFounder.ai](https://ai.studio/apps/drive/138gr68dSoybfQoLvZHM6v48JvqY74gIo)
 
 ---
 
