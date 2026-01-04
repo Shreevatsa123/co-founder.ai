@@ -12,61 +12,88 @@ export const ExportView: React.FC<ExportViewProps> = ({ project }) => {
   return (
     <div className="bg-white p-8 text-slate-900 max-w-4xl mx-auto print:p-0 font-sans" id="print-area">
       {/* 1. DOCUMENT HEADER */}
-      <header className="border-b-2 border-slate-900 pb-6 mb-8 flex justify-between items-start">
+      <header className="border-b-4 border-slate-900 pb-6 mb-8 flex justify-between items-end">
         <div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2">{data.title}</h1>
-          <p className="text-slate-500 font-medium">Project Blueprint & Implementation Strategy</p>
+          <h1 className="text-4xl font-black uppercase tracking-tighter mb-1">{data.title}</h1>
+          <p className="text-indigo-600 font-bold text-sm uppercase tracking-widest">Resources & Scope Blueprint</p>
         </div>
-        <div className="text-right text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Generated: {new Date().toLocaleDateString()}
+        <div className="text-right text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+          {new Date().toLocaleDateString()}
         </div>
       </header>
 
-      {/* 2. SUMMARY SECTION */}
+      {/* 2. PROJECT SUMMARY */}
       <section className="mb-10">
-        <h2 className="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-4 uppercase tracking-wide">Executive Summary</h2>
-        <p className="text-slate-700 leading-relaxed bg-slate-50 p-4 rounded-lg border border-slate-100 italic">
+        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Project Summary</h2>
+        <p className="text-lg leading-relaxed text-slate-800 font-medium">
           {data.summary}
         </p>
       </section>
 
-      {/* 3. WORKFLOW SECTION (Page 1) */}
+      {/* 3. SCOPE & FEATURES */}
       <section className="mb-10">
-        <h2 className="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-6 uppercase tracking-wide">01. System & Build Workflows</h2>
-        
-        <div className="space-y-8">
+        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 pb-2">01. Scope & MVP Features</h2>
+        <div className="grid grid-cols-2 gap-8">
+          <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+            <h3 className="text-xs font-black text-emerald-600 uppercase mb-4">Must Have (Core)</h3>
+            <ul className="space-y-3">
+              {data.scope.coreFeatures.map((f, i) => (
+                <li key={i} className="text-sm font-bold text-slate-700 flex gap-3">
+                  <span className="text-emerald-500">✓</span> {f}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-xs font-black text-amber-600 uppercase mb-3">Nice to Have (v2.0)</h3>
+              <ul className="space-y-2">
+                {data.scope.optionalFeatures.map((f, i) => (
+                  <li key={i} className="text-xs text-slate-600 flex gap-2">
+                    <span className="text-amber-400 font-bold">+</span> {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="pt-4 border-t border-slate-100">
+              <h3 className="text-xs font-black text-slate-400 uppercase mb-2">Out of Scope</h3>
+              <p className="text-[10px] text-slate-400 italic mb-2">Features explicitly excluded from initial build:</p>
+              <div className="flex flex-wrap gap-2">
+                {data.scope.outOfScope.map((f, i) => (
+                  <span key={i} className="text-[10px] bg-slate-100 px-2 py-1 rounded line-through text-slate-400">{f}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. TECH STACK & CONCEPTS */}
+      <section className="mb-10 page-break-before pt-4">
+        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 pb-2">02. Technical Definition</h2>
+        <div className="grid grid-cols-2 gap-12">
           <div>
-            <h3 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
-              <span className="w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px]">A</span>
-              The System: How it works
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {data.appWorkflow.nodes.map((node, i) => (
-                <div key={i} className="flex gap-4 items-center p-3 border border-slate-200 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 w-6">{(i + 1).toString().padStart(2, '0')}</span>
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{node.label}</div>
-                    <div className="text-xs text-slate-500">{node.details}</div>
-                  </div>
-                  <span className="text-[9px] font-black uppercase tracking-tighter text-slate-300 border border-slate-200 px-1.5 rounded">{node.type}</span>
+            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase">Tech Stack</h3>
+            <div className="space-y-4">
+              {data.techStack.map((stack, i) => (
+                <div key={i}>
+                  <div className="text-[10px] font-black text-indigo-500 uppercase">{stack.category}</div>
+                  <div className="text-sm font-bold text-slate-800">{stack.tools.join(', ')}</div>
+                  <p className="text-[10px] text-slate-400 italic mt-0.5">{stack.reason}</p>
                 </div>
               ))}
             </div>
           </div>
-
-          <div className="page-break-before pt-4">
-            <h3 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center gap-2">
-              <span className="w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center text-[10px]">B</span>
-              Implementation: How to build it
-            </h3>
-            <div className="grid grid-cols-1 gap-3">
-              {data.implementationWorkflow.nodes.map((node, i) => (
-                <div key={i} className="flex gap-4 items-center p-3 border border-slate-200 rounded-lg">
-                  <span className="text-xs font-bold text-slate-400 w-6">{(i + 1).toString().padStart(2, '0')}</span>
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{node.label}</div>
-                    <div className="text-xs text-slate-500">{node.details}</div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 mb-4 uppercase">Core Concepts</h3>
+            <div className="space-y-4">
+              {data.coreConcepts.map((concept, i) => (
+                <div key={i} className="border-l-2 border-slate-200 pl-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold">{concept.name}</span>
+                    <span className="text-[8px] font-black uppercase text-slate-400">{concept.complexity}</span>
                   </div>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">{concept.description}</p>
                 </div>
               ))}
             </div>
@@ -74,118 +101,46 @@ export const ExportView: React.FC<ExportViewProps> = ({ project }) => {
         </div>
       </section>
 
-      {/* 4. RESOURCES & SCOPE (Page 2) */}
-      <section className="mb-10 page-break-before pt-8">
-        <h2 className="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-8 uppercase tracking-wide">02. Resources, Scope & Tech Stack</h2>
-        
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">Core Tech Stack</h3>
-            <div className="space-y-3">
-              {data.techStack.map((stack, i) => (
-                <div key={i} className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                  <div className="text-[10px] font-black text-indigo-600 uppercase mb-1">{stack.category}</div>
-                  <div className="text-sm font-bold">{stack.tools.join(', ')}</div>
-                  <div className="text-[10px] text-slate-400 mt-1 italic">{stack.reason}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">Project Scope (MVP)</h3>
-            <div className="border-2 border-slate-100 rounded-xl overflow-hidden">
-              <div className="bg-slate-100 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Must Have Features</div>
-              <ul className="p-4 space-y-2">
-                {data.scope.coreFeatures.map((f, i) => (
-                  <li key={i} className="text-xs font-medium text-slate-700 flex gap-2">
-                    <span className="text-emerald-500 font-bold">•</span> {f}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-4 border border-dashed border-slate-200 rounded-xl p-4">
-               <div className="text-[10px] font-bold uppercase text-slate-400 mb-2">Future Considerations</div>
-               <div className="flex flex-wrap gap-2">
-                 {data.scope.optionalFeatures.map((f, i) => (
-                   <span key={i} className="text-[10px] bg-slate-50 px-2 py-1 rounded text-slate-500 border border-slate-100">{f}</span>
-                 ))}
-               </div>
-            </div>
-          </div>
-        </div>
-
-        <h3 className="text-xs font-bold text-slate-400 uppercase mb-3">External Knowledge & Assets</h3>
-        <div className="grid grid-cols-2 gap-4">
-          {data.recommendedResources.map((res, i) => (
-            <div key={i} className="p-4 border border-slate-100 rounded-lg flex items-start gap-3">
-              <div className="w-8 h-8 rounded bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                <span className="text-[10px] font-bold text-indigo-600">{res.type[0].toUpperCase()}</span>
-              </div>
+      {/* 5. SIMPLIFIED IMPLEMENTATION WORKFLOW */}
+      <section className="mb-10">
+        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 pb-2">03. Build Roadmap</h2>
+        <div className="space-y-3">
+          {data.implementationWorkflow.nodes.map((node, i) => (
+            <div key={i} className="flex gap-4 items-start p-4 bg-slate-50 rounded-xl border border-slate-100">
+              <span className="w-6 h-6 rounded bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0">
+                {i + 1}
+              </span>
               <div>
-                <div className="text-sm font-bold text-slate-900 leading-tight">{res.title}</div>
-                <div className="text-[10px] text-slate-500 mt-1 line-clamp-1 underline">{res.url}</div>
+                <div className="text-sm font-bold text-slate-900">{node.label}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{node.details}</div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 5. STRATEGY & RISKS (Page 3) */}
-      <section className="mb-10 page-break-before pt-8">
-        <h2 className="text-lg font-bold border-l-4 border-indigo-600 pl-3 mb-8 uppercase tracking-wide">03. Strategy, Market & Risk Analysis</h2>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-slate-50 p-6 rounded-2xl">
-            <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">Market Context</h3>
-            <div className="space-y-4">
+      {/* 6. RECOMMENDED RESOURCES */}
+      <section className="mb-10 page-break-before pt-4">
+        <h2 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 pb-2">04. Key Learning & Resources</h2>
+        <div className="grid grid-cols-1 gap-4">
+          {data.recommendedResources.map((res, i) => (
+            <div key={i} className="p-4 border-2 border-slate-100 rounded-xl flex items-center justify-between group">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase">Target Audience</label>
-                <p className="text-sm font-medium text-slate-700 mt-1">{data.marketAnalysis.targetAudience}</p>
-              </div>
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase">Key Competitors</label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {data.marketAnalysis.keyCompetitors.map((c, i) => (
-                    <span key={i} className="text-xs font-bold px-2 py-0.5 border border-slate-300 rounded">{c}</span>
-                  ))}
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{res.type}</span>
+                  <h4 className="text-sm font-bold text-slate-900">{res.title}</h4>
                 </div>
+                <p className="text-xs text-slate-500 mb-1">{res.description}</p>
+                <div className="text-[10px] text-slate-400 underline font-mono">{res.url}</div>
               </div>
             </div>
-          </div>
-
-          <div className="border-2 border-rose-100 p-6 rounded-2xl bg-rose-50/30">
-            <h3 className="text-xs font-bold text-rose-600 uppercase mb-4 tracking-widest">Risk Assessment</h3>
-            <ul className="space-y-3">
-              {data.risksAndLiabilities.map((risk, i) => (
-                <li key={i} className="text-sm font-bold text-slate-800 flex gap-3">
-                  <span className="text-rose-500">!</span> {risk}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-xs font-bold text-slate-400 uppercase mb-4">Strategic Insights</h3>
-          <div className="grid grid-cols-1 gap-4">
-            {data.strategicInsights.map((insight, i) => (
-              <div key={i} className="p-4 border border-slate-100 rounded-xl bg-white">
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-sm font-bold text-slate-900">{insight.title}</h4>
-                  <span className="text-[9px] font-black text-slate-400 uppercase">{insight.type}</span>
-                </div>
-                <p className="text-xs text-slate-500 leading-relaxed italic border-t border-slate-50 pt-2">{insight.summary}</p>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
 
-      <footer className="mt-20 pt-8 border-t border-slate-100 text-center">
-        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-          End of Document — ConceptForge Blueprint Engine
-        </p>
+      <footer className="mt-20 pt-8 border-t border-slate-100 flex justify-between items-center text-slate-400">
+        <p className="text-[10px] font-black uppercase tracking-widest italic">Confidential Project Blueprint</p>
+        <p className="text-[10px] font-bold uppercase tracking-widest">ConceptForge.ai</p>
       </footer>
     </div>
   );

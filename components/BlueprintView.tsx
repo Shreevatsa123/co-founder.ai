@@ -43,7 +43,6 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   
   // Export status
   const [isExporting, setIsExporting] = useState(false);
-  const [exportStage, setExportStage] = useState('');
 
   const { blueprint: data } = project;
 
@@ -57,14 +56,12 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
 
   const handleExportPDF = () => {
     setIsExporting(true);
-    setExportStage('Preparing your notebook...');
-
-    setTimeout(() => {
-      setExportStage('Almost ready...');
+    // Use requestAnimationFrame to ensure the ExportView has a moment to mount in print-root
+    requestAnimationFrame(() => {
       setTimeout(() => {
         window.print();
-      }, 500);
-    }, 800);
+      }, 100);
+    });
   };
 
   const handleDownloadBackup = () => {
@@ -95,13 +92,12 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
       
       {printPortal}
 
-      {/* SIMPLER EXPORT NOTICE */}
+      {/* NEAR-INSTANT EXPORT OVERLAY */}
       {isExporting && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-6 text-center no-print">
-          <div className="bg-white border-2 border-slate-900 rounded-3xl p-10 sketch-shadow max-w-sm w-full">
-            <Icons.Loader className="w-12 h-12 text-indigo-600 animate-spin mx-auto mb-6" />
-            <h2 className="text-xl font-bold text-slate-900 mb-2">{exportStage}</h2>
-            <p className="text-sm text-slate-500">The print dialog will open automatically.</p>
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center p-6 text-center no-print">
+          <div className="flex flex-col items-center">
+            <Icons.Loader className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+            <h2 className="text-lg font-bold text-slate-900">Generating Report...</h2>
           </div>
         </div>
       )}
@@ -130,7 +126,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold sketch-shadow-sm hover:sketch-shadow transition-all group"
              >
                <Icons.Download className="w-4 h-4" />
-               PDF Report
+               Quick Export
              </button>
            </div>
         </div>
