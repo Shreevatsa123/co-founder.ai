@@ -60,8 +60,16 @@ export interface ScopeRecommendation {
 export interface WorkflowNode {
   id: string;
   label: string;
-  type: 'user' | 'system' | 'data' | 'action';
-  details: string;
+  type: 'user' | 'system' | 'data' | 'action' | 'decision'; // Added 'decision' for complexity
+  details: string; // Summary
+  
+  // Granular Technical Details
+  technicalDescription?: string; 
+  whyNeeded?: string; 
+  userBenefit?: string; 
+  executionSteps?: string[]; 
+  searchQueries?: string[]; 
+
   userNotes?: string;
   aiSuggestions?: string;
 }
@@ -132,8 +140,6 @@ export interface Blueprint {
   
   // Optional context
   clarifyingQuestions?: string[];
-  
-  // Prompt Generation
   promptPlan?: PromptStep[];
 }
 

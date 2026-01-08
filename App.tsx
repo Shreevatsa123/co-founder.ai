@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { InputHero } from './components/InputHero';
 import { BlueprintView } from './components/BlueprintView';
@@ -199,16 +200,6 @@ function App() {
           </div>
         </div>
 
-        {/* Persistence Notice */}
-        <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 min-w-[18rem]">
-           <div className="flex gap-2">
-             <Icons.Alert className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-             <p className="text-[10px] text-amber-800 font-medium leading-relaxed">
-               Work is saved in your browser locally. Download PDF or JSON to prevent data loss.
-             </p>
-           </div>
-        </div>
-
         <div className="p-4 min-w-[18rem] space-y-2">
           <button 
             onClick={handleNewProject}
@@ -296,6 +287,12 @@ function App() {
           })}
         </div>
         
+        <div className="p-4 border-t border-slate-100 mt-auto bg-slate-50/50">
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">
+              Copyright © Shreevatsa Agnihotri
+            </p>
+        </div>
+
         {/* Invisible Analytics Provider */}
         <SilentTracker />
       </aside>

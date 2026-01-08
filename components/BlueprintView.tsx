@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom';
-import { Blueprint, ChatMessage, Project } from '../types';
+import { Project } from '../types';
 import { Icons } from './Icons';
-import { RevenueChart, MarketDonut, DynamicChart } from './Visualizations';
+import { DynamicChart } from './Visualizations';
 import { WorkflowMap } from './WorkflowMap';
-import { PromptManager } from './PromptManager';
 import { ExportView } from './ExportView';
+import { PromptManager } from './PromptManager';
 
 interface BlueprintViewProps {
   project: Project;
@@ -39,40 +38,113 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   isSidebarOpen 
 }) => {
   const [activeView, setActiveView] = useState<'workflow' | 'resources' | 'strategy'>('workflow');
-  const [showPromptManager, setShowPromptManager] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [showPrompts, setShowPrompts] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   
-  // Export status
-  const [isExporting, setIsExporting] = useState(false);
-
   const { blueprint: data } = project;
 
+  // Sync document title with project title for better history/export names
   useEffect(() => {
-    const handleAfterPrint = () => {
-      setIsExporting(false);
+    document.title = `${project.title} | ConceptForge`;
+    return () => {
+      document.title = 'ConceptForge Planner';
     };
-    window.addEventListener('afterprint', handleAfterPrint);
-    return () => window.removeEventListener('afterprint', handleAfterPrint);
-  }, []);
+  }, [project.title]);
 
-  const handleExportPDF = () => {
-    setIsExporting(true);
-    // Use requestAnimationFrame to ensure the ExportView has a moment to mount in print-root
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    });
+  const handleUpdateBlueprint = (updatedBlueprint: typeof data) => {
+    onUpdateProject({ ...project, blueprint: updatedBlueprint });
   };
 
-  const handleDownloadBackup = () => {
-    const jsonString = JSON.stringify(project, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${project.title.replace(/\s+/g, '_')}_backup.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const handleSavePDF = async () => {
+    setIsDownloading(true);
+    const element = document.getElementById('print-area');
+    if (!element) {
+      setIsDownloading(false);
+      return;
+    }
+
+    // Clone the element to manipulate it without affecting the view
+    // We create a container to render the clone off-screen so we can compute styles (like SVG size)
+    const clone = element.cloneNode(true) as HTMLElement;
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.top = '-9999px';
+    container.style.left = '0';
+    container.style.width = '800px'; // Force A4-ish width
+    container.appendChild(clone);
+    document.body.appendChild(container);
+
+    try {
+        // Rasterize SVGs to Images to fix html2canvas rendering issues
+        const svgs = clone.querySelectorAll('svg');
+        
+        // Process all SVGs in the clone
+        await Promise.all(Array.from(svgs).map(async (svg) => {
+            const rect = svg.getBoundingClientRect();
+            // Fallback to attribute width if rect is 0 (happens if container is hidden too aggressively)
+            const width = rect.width || parseFloat(svg.getAttribute('width') || '0');
+            const height = rect.height || parseFloat(svg.getAttribute('height') || '0');
+            
+            if (width === 0 || height === 0) return;
+
+            const xml = new XMLSerializer().serializeToString(svg);
+            // Handle Unicode characters in SVG
+            const svg64 = btoa(unescape(encodeURIComponent(xml)));
+            const image64 = `data:image/svg+xml;base64,${svg64}`;
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    // 2x scale for better PDF quality
+                    canvas.width = width * 2;
+                    canvas.height = height * 2;
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.fillStyle = '#ffffff'; // Ensure background is white
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        
+                        const jpg = document.createElement('img');
+                        jpg.src = canvas.toDataURL('image/jpeg', 0.95);
+                        jpg.style.width = '100%';
+                        jpg.style.height = 'auto';
+                        
+                        // Replace the SVG element with the rasterized Image
+                        svg.parentNode?.replaceChild(jpg, svg);
+                    }
+                    resolve(null);
+                };
+                img.onerror = () => resolve(null); // Fail gracefully
+                img.src = image64;
+            });
+        }));
+
+        const opt = {
+          margin: [10, 10, 10, 10], // top, left, bottom, right
+          filename: `${project.title.replace(/\s+/g, '_')}_Blueprint.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        // @ts-ignore
+        if (window.html2pdf) {
+          // @ts-ignore
+          await window.html2pdf().set(opt).from(clone).save();
+        } else {
+          window.print();
+        }
+    } catch (e) {
+        console.error("PDF generation failed", e);
+        // Fallback
+        window.print();
+    } finally {
+        document.body.removeChild(container);
+        setIsDownloading(false);
+    }
   };
 
   const views = [
@@ -81,27 +153,9 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
     { id: 'strategy', label: 'Strategy & Risks', icon: Icons.Trending },
   ];
 
-  const printRoot = document.getElementById('print-root');
-  const printPortal = printRoot ? ReactDOM.createPortal(
-    <ExportView project={project} />,
-    printRoot
-  ) : null;
-
   return (
     <div className="relative w-full h-full flex flex-col bg-transparent overflow-hidden font-sans">
       
-      {printPortal}
-
-      {/* NEAR-INSTANT EXPORT OVERLAY */}
-      {isExporting && (
-        <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-[100] flex flex-col items-center justify-center p-6 text-center no-print">
-          <div className="flex flex-col items-center">
-            <Icons.Loader className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-            <h2 className="text-lg font-bold text-slate-900">Generating Report...</h2>
-          </div>
-        </div>
-      )}
-
       {/* Main Application Header */}
       <div className="relative z-40 flex items-center gap-4 px-6 py-4 bg-white/80 backdrop-blur-sm border-b border-slate-200/50 flex-shrink-0">
         <button 
@@ -114,19 +168,20 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
            <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate font-display">{data.title}</h1>
            <div className="flex items-center gap-2">
              <button 
-               onClick={handleDownloadBackup}
-               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
-               title="JSON Backup"
+               onClick={() => setShowPrompts(true)}
+               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white hover:text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-sm"
+               title="Build Prompts for Coding"
              >
-               <Icons.FileJson className="w-4 h-4" />
-               JSON
+               <Icons.Sparkles className="w-4 h-4" />
+               Build Prompts
              </button>
              <button 
-               onClick={handleExportPDF}
-               className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold sketch-shadow-sm hover:sketch-shadow transition-all group"
+               onClick={() => setShowReport(true)}
+               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+               title="View Project Report"
              >
-               <Icons.Download className="w-4 h-4" />
-               Quick Export
+               <Icons.FileText className="w-4 h-4" />
+               Report
              </button>
            </div>
         </div>
@@ -314,29 +369,41 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                </button>
             </div>
          ))}
-         
-         <div className="w-full h-px bg-slate-300/50 my-1"></div>
-
-         <div className="relative group flex items-center justify-end">
-            <div className="absolute right-full mr-3 px-3 py-1 bg-slate-900 text-white text-xs font-bold rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-lg font-display">
-                Build Prompts
-                <div className="absolute top-1/2 -right-1 -translate-y-1/2 border-4 border-transparent border-l-slate-900"></div>
-            </div>
-            <button
-               onClick={() => setShowPromptManager(true)}
-               className="w-12 h-12 flex items-center justify-center rounded-full border-2 bg-indigo-50 border-indigo-200 text-indigo-600 hover:bg-indigo-100 transition-all duration-200 sketch-shadow hover:sketch-shadow-hover shadow-sm"
-            >
-               <Icons.Sparkles className="w-5 h-5" />
-            </button>
-         </div>
       </div>
 
-      {showPromptManager && (
-         <PromptManager 
-           blueprint={data}
-           onUpdateBlueprint={(bp) => onUpdateProject({ ...project, blueprint: bp })}
-           onClose={() => setShowPromptManager(false)}
-         />
+      {/* MODALS */}
+      {showPrompts && (
+        <PromptManager 
+          blueprint={data} 
+          onUpdateBlueprint={handleUpdateBlueprint} 
+          onClose={() => setShowPrompts(false)} 
+        />
+      )}
+
+      {showReport && (
+        <div className="fixed inset-0 z-[100] bg-slate-200/90 backdrop-blur-sm overflow-y-auto flex justify-center pt-8 pb-20 animate-in fade-in duration-200">
+           <button 
+              onClick={() => setShowReport(false)} 
+              className="fixed top-6 right-8 bg-slate-900 text-white p-3 rounded-full shadow-lg hover:scale-110 transition-all z-[110] no-print"
+              title="Close Report"
+           >
+              <Icons.Close className="w-6 h-6" />
+           </button>
+
+           <button 
+              onClick={handleSavePDF} 
+              disabled={isDownloading}
+              className="fixed top-6 right-24 bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-all z-[110] font-bold text-sm flex items-center gap-2 no-print disabled:opacity-70 disabled:cursor-not-allowed"
+              title="Download PDF"
+           >
+              {isDownloading ? <Icons.Loader className="w-4 h-4 animate-spin" /> : <Icons.Download className="w-4 h-4" />}
+              {isDownloading ? 'Saving...' : 'Download PDF'}
+           </button>
+
+           <div className="w-full max-w-4xl bg-white shadow-2xl min-h-[1100px] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 origin-top">
+              <ExportView project={project} onDownload={handleSavePDF} />
+           </div>
+        </div>
       )}
     </div>
   );

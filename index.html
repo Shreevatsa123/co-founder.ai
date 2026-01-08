@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -5,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ConceptForge Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
@@ -64,42 +66,38 @@
       }
       
       /* PRINT ENGINE OPTIMIZATION */
-      @media screen {
-        #print-root {
-          position: fixed;
-          left: -10000px; 
-          top: 0;
-          width: 1024px;
-          height: 1px;
-          overflow: hidden;
-          background: white;
-          z-index: -1000;
-        }
-      }
-
       @media print {
         @page {
-          margin: 1.5cm;
+          margin: 1cm;
           size: A4 portrait;
         }
-        #root, .no-print {
+        
+        body {
+          background: white;
+        }
+        
+        /* Hide everything by default */
+        body * {
+          visibility: hidden;
+        }
+
+        /* Only show the specific print area */
+        #print-area, #print-area * {
+          visibility: visible;
+        }
+        
+        #print-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          background: white;
+        }
+
+        .no-print {
           display: none !important;
-        }
-        #print-root {
-          display: block !important;
-          position: relative !important;
-          left: 0 !important;
-          width: 100% !important;
-          height: auto !important;
-          overflow: visible !important;
-          visibility: visible !important;
-          background: white !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        * {
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
         }
       }
     </style>
@@ -118,7 +116,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <div id="print-root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

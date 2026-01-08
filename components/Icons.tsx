@@ -51,7 +51,8 @@ import {
   FileJson,
   Info,
   Globe,
-  Upload
+  Upload,
+  FileText
 } from 'lucide-react';
 
 export const Icons = {
@@ -105,5 +106,6 @@ export const Icons = {
   FileJson,
   Info,
   Globe,
-  Upload
+  Upload,
+  FileText
 };

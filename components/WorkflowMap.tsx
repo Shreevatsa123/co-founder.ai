@@ -223,6 +223,12 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    // Check if background click for deselecting.
+    // Since nodes stop propagation, any click that reaches here is on the background.
+    if (activeTool === 'select') {
+       setSelectedNodeId(null);
+    }
+
     if (e.button === 2 || activeTool === 'pan') {
       e.preventDefault();
       setIsPanning(true);
@@ -407,15 +413,34 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
     try {
       const context = `Context: Node: ${selectedNode?.label}. Details: ${selectedNode?.details}. User Q: ${aiInput}`;
       const response = await sendMessageToProject(project.blueprint, [], context);
-      const updatedNodes = appWorkflow.nodes.map(n => 
-        n.id === selectedNodeId ? { 
-          ...n, 
-          aiSuggestions: (n.aiSuggestions ? n.aiSuggestions + '\n\n' : '') + `Q: ${aiInput}\nA: ${response}` 
-        } : n
-      );
+      
+      const newSuggestion = `Q: ${aiInput}\nA: ${response}`;
+      
+      // Determine which workflow the node belongs to
+      const isSystemNode = systemWorkflow.nodes.some(n => n.id === selectedNodeId);
+      
+      let newSystemWorkflow = appWorkflow;
+      let newBuildWorkflow = buildWorkflow;
+
+      if (isSystemNode) {
+        newSystemWorkflow = {
+           ...appWorkflow,
+           nodes: appWorkflow.nodes.map(n => 
+             n.id === selectedNodeId ? { ...n, aiSuggestions: (n.aiSuggestions ? n.aiSuggestions + '\n\n' : '') + newSuggestion } : n
+           )
+        };
+      } else {
+         newBuildWorkflow = {
+            ...buildWorkflow,
+            nodes: buildWorkflow.nodes.map(n => 
+              n.id === selectedNodeId ? { ...n, aiSuggestions: (n.aiSuggestions ? n.aiSuggestions + '\n\n' : '') + newSuggestion } : n
+            )
+         };
+      }
+
       onUpdateProject({
         ...project,
-        blueprint: { ...project.blueprint, appWorkflow: { ...appWorkflow, nodes: updatedNodes } }
+        blueprint: { ...project.blueprint, appWorkflow: newSystemWorkflow, implementationWorkflow: newBuildWorkflow }
       });
       setAiInput('');
     } catch (e) {
@@ -444,6 +469,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
   const renderNode = (node: WorkflowNode) => {
     const isSelected = selectedNodeId === node.id;
     const isAction = node.type === 'action';
+    const isDecision = node.type === 'decision';
     const isData = node.type === 'data';
     const isUser = node.type === 'user';
 
@@ -456,7 +482,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
           onMouseDown={(e) => e.stopPropagation()}
           className={`
             relative z-10 transition-all duration-200 group
-            px-4 py-2 rounded-full border border-slate-900 bg-white
+            px-4 py-2 rounded-lg border-2 border-slate-900 bg-white
             text-xs font-bold text-slate-700
             hover:scale-105
             ${isSelected ? 'ring-2 ring-indigo-400 shadow-md' : 'shadow-sm'}
@@ -464,6 +490,28 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
         >
           {node.label}
         </button>
+      );
+    }
+
+    if (isDecision) {
+      return (
+        <div key={node.id} className="relative z-10 flex items-center justify-center py-4">
+           <button
+            id={`node-${node.id}`}
+            onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            className={`
+              relative w-24 h-24 bg-white border-2 border-slate-900 
+              flex items-center justify-center text-center p-2
+              hover:scale-105 transition-all rotate-45
+              ${isSelected ? 'ring-2 ring-indigo-400 shadow-md' : 'shadow-sm'}
+            `}
+           >
+             <span className="-rotate-45 text-[10px] font-bold text-slate-900 leading-tight">
+                {node.label}
+             </span>
+           </button>
+        </div>
       );
     }
 
@@ -475,15 +523,15 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
           onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
           onMouseDown={(e) => e.stopPropagation()}
           className={`
-            relative z-10 w-28 h-28 flex-shrink-0 rounded-full border-[3px] border-slate-900 bg-white 
-            flex flex-col items-center justify-center p-2 text-center 
+            relative z-10 w-20 h-20 flex-shrink-0 rounded-full border-[3px] border-slate-900 bg-white 
+            flex flex-col items-center justify-center p-1 text-center 
             sketch-shadow hover:sketch-shadow-hover transition-all
             ${isSelected ? 'scale-105 ring-4 ring-indigo-100' : ''}
           `}
         >
-          <Icons.User className="w-6 h-6 text-indigo-600 mb-1" />
-          <span className="font-bold text-slate-900 text-xs leading-tight w-full px-1">{node.label}</span>
-          {node.userNotes && <div className="absolute top-1 right-1 w-3 h-3 bg-amber-400 rounded-full border border-slate-900"></div>}
+          <Icons.User className="w-5 h-5 text-indigo-600 mb-0.5" />
+          <span className="font-bold text-slate-900 text-[9px] leading-tight w-full px-1 truncate">{node.label}</span>
+          {node.userNotes && <div className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border border-slate-900"></div>}
         </button>
       );
     }
@@ -495,16 +543,16 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
         onClick={(e) => { e.stopPropagation(); setSelectedNodeId(node.id); }}
         onMouseDown={(e) => e.stopPropagation()}
         className={`
-          relative z-10 w-60 h-auto min-h-[5rem] px-5 py-4
+          relative z-10 w-48 h-auto min-h-[5rem] px-3 py-3
           bg-white border-2 border-slate-900 
           text-left flex flex-col justify-center
           sketch-shadow hover:sketch-shadow-hover transition-all
-          ${isData ? 'rounded-lg border-l-8 border-l-emerald-500' : 'rounded-xl'}
+          ${isData ? 'rounded-lg border-l-8 border-l-emerald-500' : 'rounded-lg'}
           ${isSelected ? 'scale-105 ring-4 ring-indigo-100' : ''}
         `}
       >
-        <div className="flex items-center gap-2 mb-2">
-           <span className={`text-[10px] font-bold uppercase tracking-widest ${
+        <div className="flex items-center gap-2 mb-1">
+           <span className={`text-[8px] font-bold uppercase tracking-widest ${
               isData ? 'text-emerald-700' : 'text-slate-500'
            }`}>
              {node.type}
@@ -512,8 +560,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
            {node.userNotes && <Icons.PenTool className="w-3 h-3 text-amber-500" />}
         </div>
         
-        <h4 className="font-bold text-slate-900 text-sm leading-tight whitespace-normal mb-1">{node.label}</h4>
-        <p className="text-[10px] text-slate-500 line-clamp-2 leading-tight">{node.details}</p>
+        <h4 className="font-bold text-slate-900 text-xs leading-tight whitespace-normal mb-1">{node.label}</h4>
+        <p className="text-[9px] text-slate-500 line-clamp-3 leading-tight">{node.details}</p>
       </button>
     );
   };
@@ -657,9 +705,9 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">1</span>
                        How the project will work?
                     </h2>
-                    <div className="flex flex-row items-center gap-64">
+                    <div className="flex flex-row items-center gap-48">
                       {systemColumns.map((colNodes, colIndex) => (
-                        <div key={`sys-col-${colIndex}`} className="flex flex-col gap-32 items-center justify-center">
+                        <div key={`sys-col-${colIndex}`} className="flex flex-col gap-16 items-center justify-center">
                           {colNodes.map(node => renderNode(node))}
                         </div>
                       ))}
@@ -674,9 +722,9 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">2</span>
                        How to build this project?
                     </h2>
-                     <div className="flex flex-col items-start gap-32 pl-12">
+                     <div className="flex flex-col items-start gap-16 pl-12">
                       {buildRows.map((rowNodes, rowIndex) => (
-                        <div key={`build-row-${rowIndex}`} className="flex flex-row gap-64 items-center justify-center">
+                        <div key={`build-row-${rowIndex}`} className="flex flex-row gap-48 items-center justify-center">
                           {rowNodes.map(node => renderNode(node))}
                         </div>
                       ))}
@@ -739,6 +787,13 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                  <div className="prose prose-sm pr-12">
                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Description</h4>
                    <p className="text-slate-800 leading-relaxed text-sm">{selectedNode.details}</p>
+
+                   {selectedNode.technicalDescription && (
+                      <div className="mt-6">
+                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2">Technical Deep Dive</h4>
+                        <p className="text-slate-600 leading-relaxed text-xs bg-slate-50 p-3 rounded border border-slate-200">{selectedNode.technicalDescription}</p>
+                      </div>
+                   )}
                  </div>
 
                  <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
@@ -756,7 +811,7 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                  <div className="bg-indigo-50 rounded-lg p-4 border border-indigo-200">
                     <h4 className="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-3">AI Assistant</h4>
                     {selectedNode.aiSuggestions && (
-                      <div className="mb-4 bg-white/50 rounded p-3 text-xs text-slate-700 whitespace-pre-wrap border border-indigo-100">
+                      <div className="mb-4 bg-white border border-indigo-100 rounded p-3 text-xs text-slate-700 whitespace-pre-wrap shadow-sm">
                         {selectedNode.aiSuggestions}
                       </div>
                     )}
@@ -766,13 +821,13 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                          value={aiInput}
                          onChange={(e) => setAiInput(e.target.value)}
                          placeholder="Refine this step..."
-                         className="flex-1 text-xs border border-slate-200 rounded px-3 py-2"
+                         className="flex-1 text-xs border border-slate-300 bg-white rounded px-3 py-2 text-slate-800 focus:ring-2 focus:ring-indigo-200 outline-none"
                          onKeyDown={(e) => e.key === 'Enter' && handleAskAi()}
                        />
                        <button 
                          onClick={handleAskAi}
                          disabled={isAiLoading || !aiInput.trim()}
-                         className="p-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                         className="p-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50"
                        >
                          {isAiLoading ? <Icons.Loader className="w-3 h-3 animate-spin" /> : <Icons.Send className="w-3 h-3" />}
                        </button>
