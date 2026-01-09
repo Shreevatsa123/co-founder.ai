@@ -31,9 +31,16 @@ export interface MarketSegment {
 
 export interface DomainMetric {
   title: string;
-  type: 'bar' | 'pie' | 'line' | 'stat' | 'radar';
-  data: { label: string; value: number }[];
+  type: 'bar' | 'pie' | 'line' | 'stat' | 'radar' | 'growth_prediction' | 'heatmap';
+  data: { 
+    label: string; 
+    value: number; 
+    projectedValue?: number; // For predictions
+    secondaryValue?: number; // For comparisons
+  }[];
   summary: string;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
 }
 
 export interface MarketAnalysis {

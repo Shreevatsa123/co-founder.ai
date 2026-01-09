@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Project } from '../types';
 import { Icons } from './Icons';
@@ -37,9 +36,8 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
   onToggleSidebar, 
   isSidebarOpen 
 }) => {
-  const [activeView, setActiveView] = useState<'workflow' | 'resources' | 'strategy'>('workflow');
+  const [activeView, setActiveView] = useState<'workflow' | 'resources' | 'strategy' | 'build'>('workflow');
   const [showReport, setShowReport] = useState(false);
-  const [showPrompts, setShowPrompts] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   
   const { blueprint: data } = project;
@@ -54,6 +52,17 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
 
   const handleUpdateBlueprint = (updatedBlueprint: typeof data) => {
     onUpdateProject({ ...project, blueprint: updatedBlueprint });
+  };
+
+  const handleDownloadBackup = () => {
+    const jsonString = JSON.stringify(project, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${project.title.replace(/\s+/g, '_')}_backup.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleSavePDF = async () => {
@@ -151,6 +160,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
     { id: 'workflow', label: 'Workflow', icon: Icons.GitMerge },
     { id: 'resources', label: 'Resources & Scope', icon: Icons.Book },
     { id: 'strategy', label: 'Strategy & Risks', icon: Icons.Trending },
+    { id: 'build', label: 'Build Plan', icon: Icons.Sparkles },
   ];
 
   return (
@@ -168,12 +178,12 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
            <h1 className="text-2xl font-bold text-slate-900 leading-tight truncate font-display">{data.title}</h1>
            <div className="flex items-center gap-2">
              <button 
-               onClick={() => setShowPrompts(true)}
-               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white hover:text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all shadow-sm"
-               title="Build Prompts for Coding"
+               onClick={handleDownloadBackup}
+               className="hidden md:flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-all"
+               title="Download JSON Backup"
              >
-               <Icons.Sparkles className="w-4 h-4" />
-               Build Prompts
+               <Icons.FileJson className="w-4 h-4" />
+               JSON
              </button>
              <button 
                onClick={() => setShowReport(true)}
@@ -198,6 +208,14 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
                 onToggleFullScreen={() => {}} 
              />
            </div>
+        )}
+
+        {activeView === 'build' && (
+           <PromptManager 
+             blueprint={data} 
+             onUpdateBlueprint={handleUpdateBlueprint} 
+             isInline={true}
+           />
         )}
 
         {activeView === 'resources' && (
@@ -371,15 +389,7 @@ export const BlueprintView: React.FC<BlueprintViewProps> = ({
          ))}
       </div>
 
-      {/* MODALS */}
-      {showPrompts && (
-        <PromptManager 
-          blueprint={data} 
-          onUpdateBlueprint={handleUpdateBlueprint} 
-          onClose={() => setShowPrompts(false)} 
-        />
-      )}
-
+      {/* REPORT MODAL */}
       {showReport && (
         <div className="fixed inset-0 z-[100] bg-slate-200/90 backdrop-blur-sm overflow-y-auto flex justify-center pt-8 pb-20 animate-in fade-in duration-200">
            <button 

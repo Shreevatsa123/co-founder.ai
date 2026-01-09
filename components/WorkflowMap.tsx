@@ -696,8 +696,8 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                  </div>
               </div>
 
-              {/* DUAL WORKFLOW LAYOUT */}
-              <div className="flex flex-col gap-48 p-20 pl-[420px] pt-12 z-10 w-max">
+              {/* DUAL WORKFLOW LAYOUT (TIGHTER GAP) */}
+              <div className="flex flex-col gap-32 p-20 pl-[420px] pt-12 z-10 w-max">
                  
                  {/* 1. SYSTEM ARCHITECTURE (Horizontal) */}
                  <div>
@@ -705,9 +705,9 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">1</span>
                        How the project will work?
                     </h2>
-                    <div className="flex flex-row items-center gap-48">
+                    <div className="flex flex-row items-center gap-24">
                       {systemColumns.map((colNodes, colIndex) => (
-                        <div key={`sys-col-${colIndex}`} className="flex flex-col gap-16 items-center justify-center">
+                        <div key={`sys-col-${colIndex}`} className="flex flex-col gap-12 items-center justify-center">
                           {colNodes.map(node => renderNode(node))}
                         </div>
                       ))}
@@ -722,9 +722,9 @@ export const WorkflowMap: React.FC<WorkflowMapProps> = ({
                        <span className="flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-white text-xl">2</span>
                        How to build this project?
                     </h2>
-                     <div className="flex flex-col items-start gap-16 pl-12">
+                     <div className="flex flex-col items-start gap-12 pl-12">
                       {buildRows.map((rowNodes, rowIndex) => (
-                        <div key={`build-row-${rowIndex}`} className="flex flex-row gap-48 items-center justify-center">
+                        <div key={`build-row-${rowIndex}`} className="flex flex-row gap-24 items-center justify-center">
                           {rowNodes.map(node => renderNode(node))}
                         </div>
                       ))}

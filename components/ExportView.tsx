@@ -2,6 +2,7 @@
 import React from 'react';
 import { Project } from '../types';
 import { Icons } from './Icons';
+import { DynamicChart } from './Visualizations';
 
 interface ExportViewProps {
   project: Project;
@@ -105,7 +106,7 @@ export const ExportView: React.FC<ExportViewProps> = ({ project, onDownload }) =
       
       {/* 5. STRATEGY, RISKS & LIABILITIES */}
       <section className="mb-10 page-break-before pt-4">
-        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">03. Strategic Deep Dive</h2>
+        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">03. Strategic Deep Dive & Projections</h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            <div>
@@ -125,13 +126,17 @@ export const ExportView: React.FC<ExportViewProps> = ({ project, onDownload }) =
 
            <div>
               <h3 className="text-sm font-bold text-slate-900 print:text-black mb-4 uppercase flex items-center gap-2">
-                 <Icons.Trending className="w-4 h-4 text-emerald-600" /> Growth Strategy
+                 <Icons.Trending className="w-4 h-4 text-emerald-600" /> Data Analysis (EDA)
               </h3>
-              <div className="space-y-4">
+              <div className="space-y-6">
                  {data.strategicInsights?.slice(0, 3).map((insight, i) => (
-                    <div key={i} className="border-l-2 border-emerald-500 pl-3">
-                       <h4 className="text-xs font-bold text-slate-800 print:text-black uppercase">{insight.title}</h4>
-                       <p className="text-[10px] text-slate-500 print:text-black/70 mt-1">{insight.summary}</p>
+                    <div key={i} className="border border-slate-200 rounded-lg p-3">
+                       <h4 className="text-xs font-bold text-slate-800 print:text-black uppercase mb-2">{insight.title}</h4>
+                       {/* Render actual chart component */}
+                       <div className="scale-90 origin-top-left">
+                          <DynamicChart metric={insight} />
+                       </div>
+                       <p className="text-[9px] text-slate-500 print:text-black/70 mt-2 italic">{insight.summary}</p>
                     </div>
                  ))}
               </div>
@@ -139,79 +144,44 @@ export const ExportView: React.FC<ExportViewProps> = ({ project, onDownload }) =
         </div>
       </section>
 
-      {/* 6. IMPLEMENTATION WORKFLOW (Roadmap) - TECHNICAL & GRANULAR */}
+      {/* 6. IMPLEMENTATION WORKFLOW (Roadmap) - SPEC SHEET STYLE */}
       <section className="mb-10 page-break-before pt-4">
-        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">04. Technical Implementation Specification</h2>
-        <p className="text-xs text-slate-500 mb-6 italic">Granular engineering roadmap for system construction.</p>
+        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">04. Technical Implementation Spec</h2>
+        <p className="text-xs text-slate-500 mb-6 italic">Engineering task list for system construction.</p>
         
-        <div className="space-y-8 relative">
-          <div className="absolute left-[11px] top-4 bottom-4 w-[2px] bg-slate-100 print:bg-black/10"></div>
-          
+        <div className="border-t-2 border-slate-900 print:border-black">
           {data.implementationWorkflow.nodes.map((node, i) => (
-             <div key={i} className="flex gap-6 items-start break-inside-avoid relative">
+             <div key={i} className="grid grid-cols-12 border-b border-slate-200 print:border-black/20 py-4 gap-4 break-inside-avoid">
+               {/* ID & Type */}
+               <div className="col-span-1 flex flex-col items-center pt-1">
+                 <span className="text-lg font-black text-slate-300 print:text-black/30">{(i + 1).toString().padStart(2, '0')}</span>
+               </div>
                
-               {/* Marker */}
-               <div className="w-6 h-6 rounded-full bg-slate-900 print:bg-black text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 mt-0.5 z-10 shadow-sm border-2 border-white">
-                 {i + 1}
+               {/* Title & Desc */}
+               <div className="col-span-4">
+                 <h3 className="text-sm font-bold text-slate-900 print:text-black uppercase leading-tight mb-1">{node.label}</h3>
+                 <span className="text-[9px] font-mono bg-slate-100 text-slate-500 px-1 rounded uppercase">{node.type}</span>
+                 <p className="text-[10px] text-slate-600 print:text-black/70 mt-2 leading-relaxed">{node.details}</p>
                </div>
 
-               {/* Technical Card */}
-               <div className="flex-1 bg-white print:bg-transparent rounded-lg border-2 border-slate-100 print:border-black/30 overflow-hidden shadow-sm">
-                  {/* Header */}
-                  <div className="bg-slate-50 border-b border-slate-100 px-5 py-3 flex justify-between items-center">
-                     <h3 className="text-sm font-black text-slate-900 print:text-black uppercase tracking-tight">{node.label}</h3>
-                     <span className="text-[9px] uppercase tracking-widest text-slate-400 font-bold bg-white px-2 py-0.5 rounded border border-slate-200">{node.type}</span>
+               {/* Specs */}
+               <div className="col-span-7 grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Technical Spec</h4>
+                    <p className="text-[10px] text-slate-800 font-medium leading-snug">{node.technicalDescription || "Standard implementation."}</p>
+                    
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-3 mb-1">Search Terms</h4>
+                    <p className="text-[9px] text-indigo-600 font-mono leading-snug">
+                       {node.searchQueries?.join(', ')}
+                    </p>
                   </div>
-                  
-                  <div className="p-5 space-y-6">
-                     
-                     {/* Technical Description */}
-                     <div>
-                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Technical Specification</h4>
-                        <p className="text-xs text-slate-800 font-medium leading-relaxed bg-slate-50 p-3 rounded border border-slate-100">{node.technicalDescription || node.details}</p>
-                     </div>
-
-                     {/* Architecture & Benefit Grid */}
-                     <div className="grid grid-cols-2 gap-4">
-                        <div>
-                           <h4 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1">Architecture Rationale</h4>
-                           <p className="text-[10px] text-slate-600 leading-snug">{node.whyNeeded || "Critical infrastructure component."}</p>
-                        </div>
-                        <div>
-                           <h4 className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Business Value</h4>
-                           <p className="text-[10px] text-slate-600 leading-snug">{node.userBenefit || "Enables core product functionality."}</p>
-                        </div>
-                     </div>
-
-                     {/* Execution Steps */}
-                     {node.executionSteps && node.executionSteps.length > 0 && (
-                       <div>
-                          <h4 className="text-[10px] font-bold text-slate-900 uppercase tracking-widest mb-2 border-b border-slate-100 pb-1">Execution Strategy</h4>
-                          <ul className="space-y-1.5">
-                             {node.executionSteps.map((step, idx) => (
-                               <li key={idx} className="text-xs text-slate-700 flex gap-2">
-                                 <span className="font-mono text-slate-400">{idx + 1}.</span> {step}
-                               </li>
-                             ))}
-                          </ul>
-                       </div>
-                     )}
-
-                     {/* Search Queries */}
-                     {node.searchQueries && node.searchQueries.length > 0 && (
-                       <div className="bg-slate-900 rounded p-3">
-                          <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                             <Icons.Search className="w-3 h-3" /> Reference Search Queries
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                             {node.searchQueries.map((q, idx) => (
-                               <span key={idx} className="text-[10px] font-mono text-indigo-300 bg-slate-800 px-2 py-1 rounded select-all cursor-text">
-                                 {q}
-                               </span>
-                             ))}
-                          </div>
-                       </div>
-                     )}
+                  <div>
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Execution Steps</h4>
+                    <ul className="list-decimal list-inside space-y-0.5">
+                       {node.executionSteps?.map((step, k) => (
+                         <li key={k} className="text-[10px] text-slate-700 leading-snug pl-1 -indent-1 ml-1">{step}</li>
+                       ))}
+                    </ul>
                   </div>
                </div>
              </div>
@@ -222,42 +192,49 @@ export const ExportView: React.FC<ExportViewProps> = ({ project, onDownload }) =
       {/* 7. RECOMMENDED RESOURCES */}
       <section className="mb-10">
         <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">05. Key Learning & Resources</h2>
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {data.recommendedResources.map((res, i) => (
-            <div key={i} className="p-4 border-2 border-slate-100 print:border-black/30 rounded-xl flex items-center justify-between group break-inside-avoid hover:border-indigo-100 transition-colors">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-black text-indigo-600 print:text-black uppercase bg-indigo-50 print:bg-transparent px-2 py-0.5 rounded border border-indigo-100 print:border-black/20">{res.type}</span>
-                  <h4 className="text-sm font-bold text-slate-900 print:text-black">{res.title}</h4>
-                </div>
-                <p className="text-xs text-slate-500 print:text-black/70 mb-1">{res.description}</p>
-                <a 
+            <div key={i} className="flex flex-col gap-1 mb-2 break-inside-avoid">
+               <a 
                    href={res.url} 
                    target="_blank" 
                    rel="noopener noreferrer" 
-                   className="text-[10px] text-blue-600 hover:text-blue-800 print:text-blue-800 font-mono underline break-all block mt-1"
+                   className="text-xs font-bold text-indigo-700 hover:underline print:text-black"
                 >
-                  {res.url}
+                  {res.title} ↗
                 </a>
-              </div>
+                <span className="text-[9px] text-slate-400 uppercase font-bold">{res.type}</span>
+                <p className="text-[10px] text-slate-500 line-clamp-2">{res.description}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 8. SYSTEM WORKFLOW */}
+      {/* 8. SYSTEM WORKFLOW - TIMELINE STYLE */}
       <section className="mb-10 page-break-before pt-4">
-        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">06. System Architecture (Deep Dive)</h2>
-        <p className="text-xs text-slate-500 mb-6 italic">Detailed component breakdown.</p>
+        <h2 className="text-xs font-black text-slate-400 print:text-black/60 uppercase tracking-[0.3em] mb-6 border-b border-slate-100 print:border-black/20 pb-2">06. System Architecture Flow</h2>
+        <p className="text-xs text-slate-500 mb-6 italic">Sequential data flow breakdown.</p>
 
-        <div className="grid grid-cols-1 gap-4">
+        <div className="ml-4 pl-4 space-y-0">
            {data.appWorkflow.nodes.map((node, i) => (
-             <div key={i} className="p-4 bg-slate-50 print:bg-transparent rounded-lg border border-slate-100 print:border-black/30 flex flex-col gap-2 break-inside-avoid shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                   <span className="text-sm font-black text-slate-900 print:text-black">{node.label}</span>
-                   <span className="text-[9px] uppercase bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-500 font-bold">{node.type}</span>
+             <div key={i} className="relative break-inside-avoid flex gap-6 pb-8 last:pb-0 group">
+                {/* Timeline Line */}
+                {i !== data.appWorkflow.nodes.length - 1 && (
+                   <div className="absolute left-[9px] top-6 bottom-0 w-0.5 bg-slate-200 print:bg-black/20"></div>
+                )}
+                
+                {/* Timeline Dot */}
+                <div className="relative z-10 w-5 h-5 rounded-full bg-white border-4 border-slate-900 print:border-black flex-shrink-0 mt-1"></div>
+                
+                <div>
+                   <h3 className="text-sm font-bold text-slate-900 print:text-black flex items-center gap-2">
+                      <span className="font-mono text-slate-400 mr-1">{i + 1}.</span> {node.label}
+                      <span className="text-[8px] font-normal text-slate-500 uppercase bg-slate-100 border border-slate-200 px-1.5 rounded">{node.type}</span>
+                   </h3>
+                   <p className="text-xs text-slate-600 print:text-black/80 mt-1 leading-relaxed max-w-prose bg-slate-50 print:bg-transparent p-2 rounded border border-slate-100 print:border-none">
+                      {node.details}
+                   </p>
                 </div>
-                <p className="text-xs text-slate-700 print:text-black/90 leading-relaxed whitespace-pre-wrap">{node.details}</p>
              </div>
            ))}
         </div>

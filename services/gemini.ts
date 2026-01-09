@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Blueprint, ChatMessage, ClarificationResponse, AppWorkflow, StickyNote, TechItem, PromptStep } from "../types";
 
@@ -15,9 +14,9 @@ export const analyzeRequest = async (prompt: string): Promise<ClarificationRespo
     config: {
       systemInstruction: `You are a Senior Project Architect.
       Analyze the user's project idea.
-      If the idea is vague (e.g., "I want a food app"), return 'isClarificationNeeded': true and provide 3-4 specific questions to narrow the scope (Target audience? Platform? Unique value?).
-      If the idea is already very detailed, set 'isClarificationNeeded': false and return empty questions.
-      
+      If the idea is very vague (1-3 words), return 'isClarificationNeeded': true with 3 specific questions.
+      If it has enough detail to infer a structure, return 'isClarificationNeeded': false.
+      Prioritize action over questions.
       Output JSON only.`,
       responseMimeType: "application/json",
       responseSchema: {
@@ -40,12 +39,12 @@ export const analyzeRequest = async (prompt: string): Promise<ClarificationRespo
  */
 export const generateBlueprint = async (originalPrompt: string, qaPairs: {question: string, answer: string}[] = []): Promise<Blueprint> => {
   
-  let combinedPrompt = `User's Initial Idea: "${originalPrompt}"\n\n`;
+  let combinedPrompt = `User's Idea: "${originalPrompt}"\n`;
   
   if (qaPairs.length > 0) {
-    combinedPrompt += "Additional Context from Q&A:\n";
+    combinedPrompt += "Context:\n";
     qaPairs.forEach((qa, i) => {
-      combinedPrompt += `Q${i+1}: ${qa.question}\nA: ${qa.answer}\n`;
+      combinedPrompt += `Q: ${qa.question} A: ${qa.answer}\n`;
     });
   }
 
@@ -53,38 +52,29 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
     model: modelId,
     contents: combinedPrompt,
     config: {
-      thinkingConfig: { thinkingBudget: 16384 }, 
-      systemInstruction: `You are a Principal Systems Architect.
-      The user requires an EXTREMELY GRANULAR, ATOMIC-LEVEL technical blueprint.
+      systemInstruction: `You are a Principal Systems Architect. Generate a comprehensive, high-fidelity technical blueprint.
+
+      CRITICAL INSTRUCTIONS FOR DEPTH & GRANULARITY:
       
-      CRITICAL INSTRUCTION: EXPLODE COMPLEXITY.
-      - Never represent a process as a single node. Break it down.
-      - "Login" is NOT one node. It is: "UI Input" -> "Client Validation" -> "POST /login" -> "Rate Limit Check" -> "DB Lookup" -> "Password Hash Compare" -> "Generate JWT" -> "Return Session".
-      - "Payment" is NOT one node. It is: "Cart Validation" -> "Tax Calc" -> "Lock Inventory" -> "Stripe Intent" -> "User Confirm" -> "Webhook Listener" -> "Update Ledger" -> "Email Receipt".
-      - aim for 40-60 nodes in the System Architecture to make it look impressive and dense.
+      1. **'appWorkflow' (System Architecture)**: 
+         - Generate **8 to 15 nodes**. DO NOT OVERSIMPLIFY.
+         - Nodes must cover the full stack: Client (Web/Mobile), CDN, Load Balancers, API Gateway, Auth Service, Core Services, Database (Primary/Replica/Cache), External Integrations (Stripe/SendGrid/AI), and Async Workers.
+         - Show the real complexity of a production app.
 
-      REQUIREMENTS:
+      2. **'implementationWorkflow' (Build Roadmap)**: 
+         - Generate **8 to 15 detailed steps**.
+         - Sequence: Environment -> DB Design -> Auth -> Core API -> Frontend Infrastructure -> Key Features -> Polish -> Deploy.
+         - 'executionSteps': Provide specific technical commands or logic (e.g., "npx create-next-app", "Define Prisma schema for User").
+         - 'technicalDescription': Name specific libraries (e.g., "Zustand for state", "Postgres for DB").
 
-      1. **'appWorkflow' (System Architecture)**:
-         - **Topology**: Dense, interconnected graph. Use 'decision' nodes for every logical branch (e.g., "Is Verified?", "Has Stock?", "Auth Valid?").
-         - **Details Field**: Strictly technical. 2-4 lines explaining the component's specific function. No conversational filler ("This node does..."). Just the facts.
-         - **Nodes**: Mix of 'user' (interactions), 'system' (services), 'data' (stores/schemas), 'action' (functions), 'decision' (logic gates).
+      3. **'strategicInsights'**: 
+         - Generate exactly **3 charts**: 'growth_prediction', 'heatmap' (Risk), and 'pie' (Market).
 
-      2. **'implementationWorkflow' (Build Roadmap)**:
-         - **Granularity**: Break the build into specific engineering tasks.
-         - **MANDATORY FIELDS**:
-           - **label**: The Engineering Task (e.g., "Implement Redis Cache Layer").
-           - **details**: Concise summary of the task.
-           - **technicalDescription**: Specific implementation details (e.g., "Use ioredis with a write-through strategy for user sessions...").
-           - **whyNeeded**: Architectural justification.
-           - **userBenefit**: End-user impact.
-           - **executionSteps**: 3-5 atomic sub-steps (e.g., "1. npm install ioredis", "2. Create RedisClient singleton", "3. Add connection error listeners").
-           - **searchQueries**: Specific search terms for developers.
+      4. **General**:
+         - Assume the user is a Senior Developer. Use precise terminology.
+         - Focus on the "Happy Path" but acknowledge complexity.
 
-      3. **'recommendedResources'**: 
-         - 6 high-quality, specific resources (Documentation, Whitepapers, GitHub Repos).
-
-      Output JSON adhering to the schema.
+      Output JSON only.
       `,
       responseMimeType: "application/json",
       responseSchema: {
@@ -125,15 +115,22 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
                type: Type.OBJECT,
                properties: {
                  title: { type: Type.STRING },
-                 type: { type: Type.STRING, enum: ['bar', 'pie', 'line', 'stat', 'radar'] },
+                 type: { type: Type.STRING, enum: ['bar', 'pie', 'line', 'stat', 'radar', 'growth_prediction', 'heatmap'] },
                  data: {
                    type: Type.ARRAY,
                    items: {
                       type: Type.OBJECT,
-                      properties: { label: { type: Type.STRING }, value: { type: Type.NUMBER } }
+                      properties: { 
+                        label: { type: Type.STRING }, 
+                        value: { type: Type.NUMBER },
+                        projectedValue: { type: Type.NUMBER },
+                        secondaryValue: { type: Type.NUMBER }
+                      }
                    }
                  },
-                 summary: { type: Type.STRING }
+                 summary: { type: Type.STRING },
+                 xAxisLabel: { type: Type.STRING },
+                 yAxisLabel: { type: Type.STRING }
                },
                required: ["title", "type", "data", "summary"]
              }
@@ -186,7 +183,7 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
 
           appWorkflow: {
             type: Type.OBJECT,
-            description: "Complex System Architecture (Granular)",
+            description: "System Flow (Step-wise)",
             properties: {
               nodes: {
                 type: Type.ARRAY,
@@ -215,7 +212,7 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
 
           implementationWorkflow: {
             type: Type.OBJECT,
-            description: "Detailed Build Roadmap (Granular)",
+            description: "Build Specs",
             properties: {
               nodes: {
                 type: Type.ARRAY,
@@ -295,28 +292,22 @@ export const refineProjectDetails = async (
    const feedbackText = stickyNotes.map(n => `- ${n.content}`).join('\n');
    
    const prompt = `
-     Current System Workflow (How it works): ${JSON.stringify(systemWorkflow)}
-     Current Implementation Workflow (How to build it): ${JSON.stringify(implementationWorkflow)}
-     Current Tech Stack: ${JSON.stringify(techStack)}
+     Current System: ${JSON.stringify(systemWorkflow)}
+     Current Build Plan: ${JSON.stringify(implementationWorkflow)}
+     Stack: ${JSON.stringify(techStack)}
 
-     USER FEEDBACK / REQUESTED CHANGES:
+     CHANGES:
      ${feedbackText}
 
-     Task: 
-     1. Update the 'systemWorkflow' to reflect functionality changes. Be GRANULAR. Break new steps into atomic nodes.
-     2. Update the 'implementationWorkflow' to reflect build step changes. Be DETAILED.
-     3. Update the 'techStack' if the feedback implies new tools.
-     
-     Ensure graph connectivity. Output JSON only.
+     Task: Refine the system & implementation plans based on feedback. Keep it detailed and handle complex requests.
+     Output JSON only.
    `;
 
    const response = await ai.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
-      thinkingConfig: { thinkingBudget: 4096 },
-      systemInstruction: `You are an expert system architect. Refine the project plan based on user feedback.
-      Maintain extreme granularity and technical depth. Do not summarize.
+      systemInstruction: `You are an expert system architect. Refine the project plan.
       Output JSON only matching the schema.`,
       responseMimeType: "application/json",
       responseSchema: {
@@ -398,13 +389,12 @@ export const sendMessageToProject = async (
 ): Promise<string> => {
   
   const context = `
-    Current Project: ${currentBlueprint.title}
+    Project: ${currentBlueprint.title}
     Domain: ${currentBlueprint.domain}
     Summary: ${currentBlueprint.summary}
-    Tech Stack: ${currentBlueprint.techStack.map(t => t.tools.join(', ')).join('; ')}
+    Stack: ${currentBlueprint.techStack.map(t => t.tools.join(', ')).join('; ')}
 
-    The user is a technical founder asking a question.
-    Act as a Principal Engineer. Be technical, precise, and helpful.
+    Role: Principal Engineer. Be concise but technical.
   `;
 
   const chat = ai.chats.create({
@@ -429,24 +419,28 @@ export const generateProjectPrompts = async (blueprint: Blueprint): Promise<Prom
   const context = `
     Project: ${blueprint.title}
     Summary: ${blueprint.summary}
-    Tech Stack: ${blueprint.techStack.map(t => t.tools.join(', ')).join('; ')}
-    Core Features: ${blueprint.scope.coreFeatures.join(', ')}
-    Implementation Plan: ${JSON.stringify(blueprint.implementationWorkflow)}
+    Stack: ${blueprint.techStack.map(t => t.tools.join(', ')).join('; ')}
+    Features: ${blueprint.scope.coreFeatures.join(', ')}
+    Plan: ${JSON.stringify(blueprint.implementationWorkflow)}
   `;
 
   const response = await ai.models.generateContent({
     model: modelId,
     contents: context,
     config: {
-      systemInstruction: `You are a Senior DevOps & Lead Architect.
-      Create a step-by-step "Prompt Plan" that the user can copy-paste into an AI coding assistant (like Cursor, Windsurf, or ChatGPT) to build this project from scratch.
-
-      Guidelines:
-      1. Break the build into 5-8 logical chunks (e.g., "Setup & Config", "Database Schema", "Auth System", "Core Feature A", "UI Polish").
-      2. Each prompt must be self-contained but sequential.
-      3. Prompts should include specific tech stack instructions based on the provided stack.
-      4. The prompts should tell the AI assistant exactly what files to create and what logic to implement.
-
+      systemInstruction: `You are a Lead DevOps & AI Architect.
+      Create a "Cursor/Windsurf Master Plan" for an AI coding assistant.
+      Break the project into 8-12 atomic, testable prompt steps (Sequential).
+      
+      Structure:
+      1. Setup & Config (Tailwind, TypeScript, ESLint, Project Structure)
+      2. Core UI Layout (Shell, Navigation)
+      3. Data Layer (Mock Data / Schema Interfaces)
+      4. State Management
+      5-10. Feature Implementation (Granular, one major component per step)
+      11. Final Polish & Error Handling
+      
+      Each prompt must be self-contained and technically specific.
       Output JSON only.
       `,
       responseMimeType: "application/json",
@@ -481,21 +475,16 @@ export const generateProjectPrompts = async (blueprint: Blueprint): Promise<Prom
  */
 export const refinePromptStep = async (step: PromptStep, userOutput: string): Promise<string> => {
   const prompt = `
-    The user ran this prompt:
-    "${step.prompt}"
-
-    And got this result/output (could be code or error logs):
-    "${userOutput}"
-
-    Analyze if this looks correct. If there are errors, suggest a fix. If it looks good, confirm it and suggest what to check next.
-    Keep it brief (under 100 words).
+    Prompt: "${step.prompt}"
+    Result: "${userOutput}"
+    Analyze if correct. Suggest fix or next step. Brief.
   `;
 
   const response = await ai.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
-      systemInstruction: "You are a helpful Senior Engineer reviewing code output."
+      systemInstruction: "You are a helpful Senior Engineer."
     }
   });
 

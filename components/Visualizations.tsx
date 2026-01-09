@@ -73,9 +73,106 @@ export const MarketDonut: React.FC<{ segments: MarketSegment[] }> = ({ segments 
   );
 };
 
-// --- Dynamic Chart for Strategic Insights ---
+// --- Dynamic Chart for Strategic Insights (EDA Style) ---
 export const DynamicChart: React.FC<{ metric: DomainMetric }> = ({ metric }) => {
   const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  if (metric.type === 'growth_prediction') {
+    // A chart showing historical line solid and predictive line dotted
+    const height = 180;
+    const width = 400;
+    const padding = 25;
+    
+    // Find max value across actual and projected
+    const allValues = metric.data.flatMap(d => [d.value, d.projectedValue || 0]);
+    const maxVal = Math.max(...allValues) * 1.1; // 10% headroom
+
+    return (
+      <div className="w-full overflow-hidden bg-white border border-slate-200 rounded-lg p-2">
+         <div className="text-[10px] text-slate-400 font-bold uppercase mb-2 text-right tracking-widest px-2">Predictive Analysis</div>
+         <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+             {/* Grid Lines */}
+             {[0.2, 0.4, 0.6, 0.8, 1].map(p => (
+                <line key={p} x1={padding} y1={height - padding - (p * (height - 2*padding))} x2={width-padding} y2={height - padding - (p * (height - 2*padding))} stroke="#f1f5f9" strokeWidth="1" />
+             ))}
+
+             {/* Actual Data Line */}
+             <polyline 
+               points={metric.data.map((d, i) => {
+                 const x = padding + (i / (metric.data.length - 1)) * (width - 2 * padding);
+                 const y = height - padding - (d.value / maxVal) * (height - 2 * padding);
+                 return `${x},${y}`;
+               }).join(' ')}
+               fill="none"
+               stroke="#6366f1"
+               strokeWidth="2.5"
+             />
+
+             {/* Projected Data Line (Dotted) */}
+             <polyline 
+               points={metric.data.map((d, i) => {
+                 const val = d.projectedValue !== undefined ? d.projectedValue : d.value;
+                 const x = padding + (i / (metric.data.length - 1)) * (width - 2 * padding);
+                 const y = height - padding - (val / maxVal) * (height - 2 * padding);
+                 return `${x},${y}`;
+               }).join(' ')}
+               fill="none"
+               stroke="#94a3b8"
+               strokeWidth="2"
+               strokeDasharray="4,4"
+             />
+             
+             {/* Points */}
+             {metric.data.map((d, i) => {
+                 const x = padding + (i / (metric.data.length - 1)) * (width - 2 * padding);
+                 const y = height - padding - (d.value / maxVal) * (height - 2 * padding);
+                 const yProj = d.projectedValue !== undefined ? height - padding - (d.projectedValue / maxVal) * (height - 2 * padding) : y;
+                 
+                 return (
+                   <g key={i}>
+                     <circle cx={x} cy={y} r="3" fill="#6366f1" />
+                     {d.projectedValue !== undefined && <circle cx={x} cy={yProj} r="3" fill="#94a3b8" />}
+                     {/* Label X-Axis */}
+                     {i % Math.ceil(metric.data.length / 5) === 0 && (
+                        <text x={x} y={height-5} fontSize="9" textAnchor="middle" fill="#64748b">{d.label}</text>
+                     )}
+                   </g>
+                 )
+             })}
+         </svg>
+         <div className="flex justify-center gap-4 mt-2">
+            <div className="flex items-center gap-1 text-[10px] text-slate-600"><div className="w-2 h-2 bg-indigo-500 rounded-full"></div> Current Data</div>
+            <div className="flex items-center gap-1 text-[10px] text-slate-600"><div className="w-2 h-2 bg-slate-400 rounded-full"></div> Projection</div>
+         </div>
+      </div>
+    )
+  }
+
+  if (metric.type === 'heatmap') {
+    // Grid based visualization
+    return (
+      <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
+         <div className="text-[10px] text-slate-400 font-bold uppercase mb-3 tracking-widest">Intensity Heatmap</div>
+         <div className="grid grid-cols-4 gap-2">
+            {metric.data.map((d, i) => {
+               // Normalize value 0-100 roughly
+               const intensity = Math.min(100, Math.max(10, d.value));
+               const opacity = intensity / 100;
+               return (
+                  <div key={i} className="flex flex-col items-center gap-1 group">
+                     <div 
+                       className="w-full h-12 rounded bg-indigo-600 transition-all hover:scale-105"
+                       style={{ opacity: opacity }}
+                       title={`${d.label}: ${d.value}`}
+                     ></div>
+                     <span className="text-[9px] text-slate-500 font-medium truncate w-full text-center">{d.label}</span>
+                  </div>
+               )
+            })}
+         </div>
+      </div>
+    )
+  }
 
   if (metric.type === 'stat') {
     return (

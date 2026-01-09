@@ -19,6 +19,9 @@ function App() {
   // Temporary state for the creation flow
   const [pendingPrompt, setPendingPrompt] = useState<string>('');
   const [clarifyingQuestions, setClarifyingQuestions] = useState<string[]>([]);
+  
+  // Loading message state
+  const [loadingMsg, setLoadingMsg] = useState("Initializing...");
 
   // Sidebar grouping state
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -45,6 +48,29 @@ function App() {
   useEffect(() => {
     localStorage.setItem('conceptForge_projects', JSON.stringify(projects));
   }, [projects]);
+  
+  // Rotate loading messages
+  useEffect(() => {
+    if (appState === AppState.GENERATING) {
+      const messages = [
+        "Constructing System Nodes...",
+        "Calculating EDA Projections...",
+        "Drafting Technical Specifications...",
+        "Linking Logic Gates...",
+        "Analyzing Market Vectors...",
+        "Finalizing Blueprint..."
+      ];
+      let i = 0;
+      setLoadingMsg(messages[0]);
+      const interval = setInterval(() => {
+        i = (i + 1) % messages.length;
+        setLoadingMsg(messages[i]);
+      }, 2000);
+      return () => clearInterval(interval);
+    } else if (appState === AppState.ANALYZING) {
+       setLoadingMsg("Reviewing your idea...");
+    }
+  }, [appState]);
 
   const handleInitialSubmit = async (prompt: string) => {
     setPendingPrompt(prompt);
@@ -324,11 +350,11 @@ function App() {
                 <div className="w-16 h-16 border-4 border-slate-200 border-t-indigo-600 rounded-full animate-spin"></div>
                 <Icons.Brain className="w-6 h-6 text-indigo-600 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
               </div>
-              <h2 className="text-xl font-bold text-slate-900 mt-6 mb-2 font-display">
-                {appState === AppState.ANALYZING ? "Reviewing your idea..." : "Drafting the Notebook..."}
+              <h2 className="text-xl font-bold text-slate-900 mt-6 mb-2 font-display animate-pulse">
+                {loadingMsg}
               </h2>
               <p className="text-slate-500 font-medium">
-                {appState === AppState.ANALYZING ? "Checking for blind spots" : "Sketching architecture and workflows"}
+                {appState === AppState.ANALYZING ? "Checking for blind spots" : "This may take a moment due to high complexity"}
               </p>
             </div>
           )}
