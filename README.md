@@ -133,4 +133,3 @@ This project is configured to deploy using `gh-pages`.
 - **PDF Generation**: html2pdf.js
 
 ---
-*Built with ❤️ by Shreevatsa.*
