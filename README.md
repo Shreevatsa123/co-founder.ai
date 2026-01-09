@@ -1,72 +1,136 @@
-# ConceptForge Planner (CoFounder.ai)
+# CoFounder.ai
 
-**ConceptForge** is a world-class project conceptualization engine designed for founders, engineers, and product managers. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
+**CoFounder.ai** is a professional-grade project conceptualization engine. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
 
 ## 🔗 Live Access
-**View the live application here:** [ConceptForge Web Portal](https://your-project-link.com)
+**[Click here to view the live application](https://shreevatsa123.github.io/co-founder.ai/)**
 
 ---
 
-## 🚀 Key Features
+## 🚀 What Can You Do With This App?
 
-- **Strategic Blueprinting**: Generates a complete "Notebook" for any project, including title, domain analysis, and technical summaries.
-- **Interactive Workflow Canvas**: A dual-map system visualizing *How it Works* (System Architecture) and *How to Build it* (Implementation Steps).
-  - **Dynamic Tools**: Pan, zoom, draw, and place sticky notes to refine the AI-generated architecture.
-  - **AI Refinement**: Add sticky notes with feedback and click "Apply" to let the AI rewrite the architecture based on your comments.
-- **Build Sequence Generator**: Engineered prompt plans designed for AI Coding Assistants (like Cursor, Windsurf, or GitHub Copilot). Get copy-pasteable, sequential prompts to build your MVP.
-- **Resources & Scope Analysis**: 
-  - **Tech Stack**: Specific tool recommendations with reasoning.
-  - **MVP Guardrails**: Defined "Must-Have", "Nice-to-Have", and "Out-of-Scope" features.
-  - **Curated Links**: Functional, relevant links to GitHub repos, research papers (arXiv), and documentation.
-- **Strategy & Market Visualization**: Dynamic data visualizations (Radar, Bar, Pie charts) showing market trends, segments, and projected revenue.
-- **Voice-First Interaction**: Integrated speech-to-text for hands-free brainstorming and clarification answering.
-- **Quick Export Engine**: Instant PDF generation focusing on a high-readability "Resources & Scope" report.
-- **Privacy & Persistence**: All data stays in your browser's LocalStorage. Import/Export JSON backups for manual data management.
+This tool acts as a "Technical Co-Founder" for solo developers and product managers.
+
+### 1. **From Idea to Blueprint**
+Simply type a vague idea (e.g., "A tinder for adopting dogs") or use the **Voice Input** microphone. The AI will:
+*   Analyze the request for blind spots.
+*   Ask clarifying questions (if needed).
+*   Generate a complete project notebook.
+
+### 2. **Interactive Workflow Maps**
+The app generates two distinct visual maps:
+*   **System Architecture:** How the data flows (Client -> API -> DB).
+*   **Implementation Plan:** The step-by-step build order.
+*   **Tools:** You can **Draw**, **Pan**, **Zoom**, and place **Sticky Notes** on the canvas.
+*   **AI Refinement:** Place a sticky note with feedback (e.g., "Add Redis caching here") and click **Apply**. The AI will re-architect the entire system based on your notes.
+
+### 3. **Generate "Build Prompts"**
+Go to the **Build Plan** tab. The app generates a sequence of copy-pasteable prompts designed for AI coding assistants like **Cursor, Windsurf, or GitHub Copilot**.
+*   *Step 1:* "Initialize Next.js project with these specific Tailwind settings..."
+*   *Step 2:* "Set up the Supabase schema..."
+*   *Step 3:* "Build the authentication hook..."
+
+### 4. **Strategy & Resources**
+*   **Visual Charts:** View projected revenue, market saturation, and risk heatmaps.
+*   **Scope Guardrails:** See exactly what defines your MVP vs. V2 features.
+*   **Tech Stack:** Get specific library recommendations (e.g., "Use Zustand for state, here is why...").
+
+### 5. **Export**
+Click the **Report** button to generate a clean, printable PDF of your entire project plan to share with stakeholders or keep for documentation.
+
+---
+
+## 🔒 Client-Side Security (Crucial)
+
+Since this is a static website hosted on GitHub Pages, the API Key is technically exposed to the browser. To prevent unauthorized use, **you must configure Google Cloud Restrictions**.
+
+If you are replicating this project, follow these steps to secure your API Key:
+
+1.  Go to the [Google Cloud Console Credentials Page](https://console.cloud.google.com/apis/credentials).
+2.  Click **Create Credentials** > **API Key**.
+3.  **Website Restrictions (The Lock):**
+    *   Under "Application restrictions", select **Websites**.
+    *   Add your domain: `https://your-username.github.io/*`
+    *   Add localhost for testing: `http://localhost:5173/*`
+4.  **API Restrictions (The Key):**
+    *   Under "API restrictions", select **Restrict key**.
+    *   Select **Generative Language API** (Gemini).
+5.  Save. Now, even if someone steals your key, they cannot use it outside of your specific website.
+
+---
+
+## 💻 How to Replicate (Local Development)
+
+### Prerequisites
+*   Node.js installed.
+*   A Google Gemini API Key (get one at [ai.google.dev](https://ai.google.dev/)).
+
+### 1. Clone & Install
+```bash
+git clone https://github.com/Shreevatsa123/co-founder.ai.git
+cd co-founder.ai
+npm install
+```
+
+### 2. Set API Key & Run
+You need to inject the API key into the environment before running.
+
+**Windows (PowerShell):**
+```powershell
+# Set the key for the current session
+$env:GEMINI_API_KEY="YOUR_ACTUAL_API_KEY_HERE"
+
+# Start the dev server
+npm run dev
+```
+
+**Mac/Linux:**
+```bash
+export GEMINI_API_KEY="YOUR_ACTUAL_API_KEY_HERE"
+npm run dev
+```
+
+*Note: The application uses `vite.config.ts` to map this environment variable to the frontend.*
+
+---
+
+## 🚀 How to Deploy to GitHub Pages
+
+This project is configured to deploy using `gh-pages`.
+
+1.  **Update Configuration:**
+    Ensure `vite.config.ts` has the correct base path for your repository:
+    ```typescript
+    base: '/co-founder.ai/', // Change to match your repo name
+    ```
+
+2.  **Run Deployment:**
+    This command builds the project and pushes the `dist` folder to a `gh-pages` branch.
+
+    **Windows (PowerShell):**
+    *If you run into script errors, you may need to bypass execution policy first:*
+    ```powershell
+    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+    $env:GEMINI_API_KEY="YOUR_ACTUAL_API_KEY_HERE"; npm run deploy
+    ```
+
+    **Mac/Linux:**
+    ```bash
+    export GEMINI_API_KEY="YOUR_ACTUAL_API_KEY_HERE" && npm run deploy
+    ```
+
+3.  **Activate in GitHub:**
+    Go to your Repository Settings > **Pages**. Ensure the source is set to `Deploy from branch` and select the `gh-pages` branch.
+
+---
 
 ## 🛠 Tech Stack
 
-- **Frontend**: React (ES6 Modules), Tailwind CSS
-- **AI Engine**: Google Gemini 3 Flash (`@google/genai`)
+- **Framework**: React 19 + Vite
+- **Styling**: Tailwind CSS
+- **AI Model**: Gemini 2.0 Flash / Gemini 1.5 Pro
 - **Icons**: Lucide React
-- **Visuals**: Custom SVG rendering for workflows and CSS-based dynamic charts.
-
-## 💻 Local Setup
-
-### Prerequisites
-- Node.js installed.
-- A Google Gemini API Key (get one at [ai.google.dev](https://ai.google.dev/)).
-
-### Installation
-1. Clone the repository or download the source files.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Create an environment variable for your API Key:
-   - On Linux/Mac: `export API_KEY=your_key_here`
-   - On Windows (PowerShell): `$env:API_KEY="your_key_here"`
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-## 📖 How to Use
-
-1. **Describe Your Idea**: Enter a project description in the hero input. Use the microphone icon if you prefer to speak.
-2. **Clarify (If Needed)**: If your idea is vague, the "Senior Project Architect" agent will ask 3-4 specific clarifying questions to narrow the scope.
-3. **Explore the Notebook**:
-   - **Workflow View**: Navigate the technical and system maps. Use the toolbar to add notes or drawings.
-   - **Resources View**: Review the tech stack and MVP features.
-   - **Strategy View**: Check the market risks and data projections.
-4. **Generate Prompts**: Open the "Build Prompts" manager to get your sequential coding instructions.
-5. **Export & Build**: Click "Quick Export" to get a printable PDF and start building with your favorite coding assistant.
-
-## 🧠 Capabilities & Agents
-
-ConceptForge uses specialized system instructions to emulate different roles:
-- **Senior Project Architect**: Analyzes initial prompts for vagueness and ensures all technical bases are covered.
-- **Strategic Project Consultant**: Researches market trends, revenue projections, and competitive landscapes.
-- **Expert System Architect**: Refines complex graph structures and technical stack choices based on iterative user feedback.
+- **PDF Generation**: html2pdf.js
 
 ---
-*Created with focus on aesthetics and deep functionality for the next generation of builders.*
+*Built with ❤️ by Shreevatsa.*
