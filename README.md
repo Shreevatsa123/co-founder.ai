@@ -2,6 +2,12 @@
 
 **CoFounder.ai** is a professional-grade project conceptualization engine. It transforms vague ideas into high-fidelity architectural blueprints, strategic market analyses, and step-by-step implementation roadmaps using the Google Gemini 3 Flash API.
 
+## 🎥 Project Demo
+[![Watch the demo](https://img.youtube.com/vi/Be5X6Nx6C44/hqdefault.jpg)](https://www.youtube.com/watch?v=Be5X6Nx6C44)
+
+*A short walkthrough showing how CoFounder.ai transforms vague ideas into complete technical blueprints.*
+
+
 ## 🔗 Live Access
 **[Click here to view the live application](https://shreevatsa123.github.io/co-founder.ai/)**
 
