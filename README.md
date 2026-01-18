@@ -7,6 +7,21 @@
 
 *A short walkthrough showing how CoFounder.ai transforms vague ideas into complete technical blueprints.*
 
+<h2 align="center">🎥 Project Demo</h2>
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=Be5X6Nx6C44">
+    <img src="https://img.youtube.com/vi/Be5X6Nx6C44/hqdefault.jpg"
+         alt="CoFounder.ai Demo"
+         width="720" />
+  </a>
+</p>
+
+<p align="center">
+  <em>A short walkthrough showing how CoFounder.ai transforms vague ideas into complete technical blueprints.</em>
+</p>
+
+
 
 ## 🔗 Live Access
 **[Click here to view the live application](https://shreevatsa123.github.io/co-founder.ai/)**
