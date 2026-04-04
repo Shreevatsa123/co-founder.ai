@@ -13,7 +13,7 @@ function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Temporary state for the creation flow
@@ -215,6 +215,14 @@ function App() {
   return (
     <div className="flex h-screen bg-slate-50 text-slate-800 overflow-hidden font-sans bg-grid-pattern">
       
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-10 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside 
         className={`${isSidebarOpen ? 'w-72 border-r-2' : 'w-0 border-r-0'} bg-white border-slate-900 transition-all duration-300 flex flex-col absolute md:relative z-20 h-full shadow-lg md:shadow-none overflow-hidden print:hidden`}
@@ -224,6 +232,13 @@ function App() {
             <Icons.Book className="w-5 h-5 text-indigo-600" />
             <span className="font-display">My Notebooks</span>
           </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-900 transition-colors"
+            title="Close sidebar"
+          >
+            <Icons.PanelLeftClose className="w-5 h-5" />
+          </button>
         </div>
 
         <div className="p-4 min-w-[18rem] space-y-2">
@@ -385,6 +400,26 @@ function App() {
             />
           )}
         </div>
+
+        {/* Main Content Footer */}
+        <footer className="w-full py-3 px-6 border-t border-slate-200/50 bg-white/50 backdrop-blur-sm flex items-center justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest print:hidden">
+          <div className="flex items-center gap-4">
+            <span className="flex items-center gap-1.5">
+              <Icons.Brain className="w-3 h-3 text-indigo-500" />
+              Powered by Gemini
+            </span>
+            <span className="hidden md:inline border-l border-slate-200 h-3"></span>
+            <span className="hidden md:inline">Conceptualization Engine v1.0</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="hidden sm:flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+              System Online
+            </span>
+            <span className="hidden sm:inline text-slate-300">•</span>
+            <span>© 2026 CoFounder.ai</span>
+          </div>
+        </footer>
       </main>
     </div>
   );
