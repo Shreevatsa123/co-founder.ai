@@ -190,6 +190,8 @@ function App() {
     setExpandedGroups(prev => ({...prev, [group]: !prev[group]}));
   }
 
+  console.log("Deploying the AI Studio key!");
+
   const groupedProjects = projects.reduce((groups, project) => {
     const date = new Date(project.createdAt);
     const today = new Date();
