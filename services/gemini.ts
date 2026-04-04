@@ -1,14 +1,30 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Blueprint, ChatMessage, ClarificationResponse, AppWorkflow, StickyNote, TechItem, PromptStep } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getApiKey = () => {
+  const key = process.env.API_KEY || process.env.GEMINI_API_KEY;
+  if (!key || key === 'undefined' || key === 'null') {
+    return null;
+  }
+  return key;
+};
+
+const apiKey = getApiKey();
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 const modelId = "gemini-3-flash-preview"; 
+
+const checkAi = () => {
+  if (!ai) {
+    throw new Error("Gemini API Key is missing. If you are running this on GitHub Pages, ensure you set the GEMINI_API_KEY environment variable during the build process (e.g., GEMINI_API_KEY=your_key npm run build).");
+  }
+};
 
 /**
  * Step 1: Analyze the prompt to see if we need to ask clarifying questions.
  */
 export const analyzeRequest = async (prompt: string): Promise<ClarificationResponse> => {
-  const response = await ai.models.generateContent({
+  checkAi();
+  const response = await ai!.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
@@ -38,7 +54,7 @@ export const analyzeRequest = async (prompt: string): Promise<ClarificationRespo
  * Step 2: Generate the full blueprint.
  */
 export const generateBlueprint = async (originalPrompt: string, qaPairs: {question: string, answer: string}[] = []): Promise<Blueprint> => {
-  
+  checkAi();
   let combinedPrompt = `User's Idea: "${originalPrompt}"\n`;
   
   if (qaPairs.length > 0) {
@@ -48,7 +64,7 @@ export const generateBlueprint = async (originalPrompt: string, qaPairs: {questi
     });
   }
 
-  const response = await ai.models.generateContent({
+  const response = await ai!.models.generateContent({
     model: modelId,
     contents: combinedPrompt,
     config: {
@@ -286,7 +302,7 @@ export const refineProjectDetails = async (
   techStack: TechItem[],
   stickyNotes: StickyNote[]
 ): Promise<{ systemWorkflow: AppWorkflow, implementationWorkflow: AppWorkflow, techStack: TechItem[] }> => {
-   
+   checkAi();
    if (!stickyNotes || stickyNotes.length === 0) return { systemWorkflow, implementationWorkflow, techStack };
 
    const feedbackText = stickyNotes.map(n => `- ${n.content}`).join('\n');
@@ -303,7 +319,7 @@ export const refineProjectDetails = async (
      Output JSON only.
    `;
 
-   const response = await ai.models.generateContent({
+   const response = await ai!.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
@@ -387,7 +403,7 @@ export const sendMessageToProject = async (
   history: ChatMessage[], 
   newMessage: string
 ): Promise<string> => {
-  
+  checkAi();
   const context = `
     Project: ${currentBlueprint.title}
     Domain: ${currentBlueprint.domain}
@@ -397,7 +413,7 @@ export const sendMessageToProject = async (
     Role: Principal Engineer. Be concise but technical.
   `;
 
-  const chat = ai.chats.create({
+  const chat = ai!.chats.create({
     model: modelId,
     config: {
       systemInstruction: context
@@ -416,6 +432,7 @@ export const sendMessageToProject = async (
  * Step 4: Generate Build Prompts
  */
 export const generateProjectPrompts = async (blueprint: Blueprint): Promise<PromptStep[]> => {
+  checkAi();
   const context = `
     Project: ${blueprint.title}
     Summary: ${blueprint.summary}
@@ -424,7 +441,7 @@ export const generateProjectPrompts = async (blueprint: Blueprint): Promise<Prom
     Plan: ${JSON.stringify(blueprint.implementationWorkflow)}
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await ai!.models.generateContent({
     model: modelId,
     contents: context,
     config: {
@@ -474,13 +491,14 @@ export const generateProjectPrompts = async (blueprint: Blueprint): Promise<Prom
  * Step 5: Refine/Analyze Step Output
  */
 export const refinePromptStep = async (step: PromptStep, userOutput: string): Promise<string> => {
+  checkAi();
   const prompt = `
     Prompt: "${step.prompt}"
     Result: "${userOutput}"
     Analyze if correct. Suggest fix or next step. Brief.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await ai!.models.generateContent({
     model: modelId,
     contents: prompt,
     config: {
