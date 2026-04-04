@@ -154,6 +154,8 @@ function App() {
   const handleImportClick = () => {
     fileInputRef.current?.click();
   };
+  
+  console.log("Forcing a new deployment for the API key!");
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
